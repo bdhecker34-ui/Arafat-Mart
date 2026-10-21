@@ -1,0 +1,80 @@
+export type ProductCategory = 'all' | 'fashion' | 'gadgets' | 'home-kitchen' | 'beauty-care';
+
+export interface Product {
+  id: string;
+  title: string;
+  titleBn?: string;
+  category: ProductCategory;
+  price: number; // in BDT (৳)
+  originalPrice?: number;
+  rating: number;
+  reviewsCount: number;
+  inStock: boolean;
+  stockCount: number;
+  image: string;
+  gallery: string[];
+  description: string;
+  features: string[];
+  specs: Record<string, string>;
+  sizes?: string[];
+  colors?: string[];
+  isFeatured?: boolean;
+  badge?: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  selectedSize?: string;
+  selectedColor?: string;
+}
+
+export interface Review {
+  id: string;
+  author: string;
+  location: string;
+  rating: number;
+  date: string;
+  comment: string;
+  verified: boolean;
+}
+
+export type PaymentMethod = 'cod' | 'bkash' | 'nagad' | 'rocket';
+
+export interface CustomerDetails {
+  fullName: string;
+  phone: string;
+  division: string;
+  district: string;
+  thana: string;
+  fullAddress: string;
+  orderNote?: string;
+}
+
+export type OrderStatus = 'confirmed' | 'quality_check' | 'dispatched' | 'out_for_delivery' | 'delivered';
+
+export interface TrackingEvent {
+  status: OrderStatus;
+  label: string;
+  time: string;
+  description: string;
+  completed: boolean;
+  current?: boolean;
+}
+
+export interface Order {
+  id: string;
+  trackingNumber: string;
+  createdAt: string;
+  customer: CustomerDetails;
+  items: CartItem[];
+  subtotal: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus: 'pending' | 'paid' | 'cod_verified';
+  orderStatus: OrderStatus;
+  trxId?: string;
+  timeline: TrackingEvent[];
+}

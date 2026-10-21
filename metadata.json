@@ -1,0 +1,6 @@
+{
+  "name": "Arafat Mart",
+  "description": "Shop fashion, electronics, home and beauty essentials at Arafat Mart. Quality checked products, honest prices, cash on delivery and fast shipping to all 64 districts in Bangladesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

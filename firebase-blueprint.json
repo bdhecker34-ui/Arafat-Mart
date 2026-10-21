@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "StoreContent": {
+      "title": "StoreContent",
+      "description": "Global store content, catalog, banners, contacts and configurations",
+      "type": "object",
+      "properties": {
+        "banners": { "type": "array", "description": "Promotional banners and hero slides" },
+        "products": { "type": "array", "description": "Catalog of active and archived products" },
+        "categories": { "type": "array", "description": "Active product categories" },
+        "notice": { "type": "object", "description": "Top announcement banner config" },
+        "contact": { "type": "object", "description": "Payment numbers and contact channels" },
+        "settings": { "type": "object", "description": "General store and delivery settings" },
+        "coupons": { "type": "array", "description": "Discount vouchers and codes" },
+        "updatedAt": { "type": "string", "description": "Last content update timestamp" }
+      },
+      "required": ["banners", "products", "categories", "contact", "settings"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order across Bangladesh 64 districts",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "description": "Unique order reference" },
+        "customerName": { "type": "string", "description": "Customer full name", "maxLength": 100 },
+        "customerPhone": { "type": "string", "description": "Customer mobile phone number", "maxLength": 20 },
+        "deliveryDistrict": { "type": "string", "description": "Delivery district in Bangladesh", "maxLength": 50 },
+        "deliveryAddress": { "type": "string", "description": "Street or village address", "maxLength": 300 },
+        "paymentMethod": { "type": "string", "description": "Payment mode (bKash, Nagad, Rocket, COD)", "maxLength": 20 },
+        "trxId": { "type": "string", "description": "Mobile transaction ID", "maxLength": 100 },
+        "totalAmount": { "type": "number", "description": "Order total amount in BDT" },
+        "status": { "type": "string", "description": "Current fulfillment status", "maxLength": 20 },
+        "items": { "type": "array", "description": "Cart items in order" },
+        "createdAt": { "type": "string", "description": "Order placement timestamp" }
+      },
+      "required": ["customerName", "customerPhone", "deliveryDistrict", "deliveryAddress", "paymentMethod", "totalAmount", "status"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrative user",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Admin email address", "maxLength": 100 },
+        "role": { "type": "string", "description": "Access role", "maxLength": 30 },
+        "createdAt": { "type": "string", "description": "Registration timestamp" }
+      },
+      "required": ["email", "role"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Administrative actions audit log",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "description": "Action executed", "maxLength": 100 },
+        "module": { "type": "string", "description": "System module", "maxLength": 50 },
+        "detail": { "type": "string", "description": "Description of action", "maxLength": 500 },
+        "adminEmail": { "type": "string", "description": "Email of admin who acted", "maxLength": 100 },
+        "timestamp": { "type": "string", "description": "Log timestamp" }
+      },
+      "required": ["action", "adminEmail", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/store_content/{contentId}": {
+      "schema": { "$ref": "#/entities/StoreContent" },
+      "description": "Global store content, product inventory, banners, and settings"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders from across Bangladesh"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "System admin credentials and authorization record"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Chronological administrative action logs"
+    }
+  }
+}

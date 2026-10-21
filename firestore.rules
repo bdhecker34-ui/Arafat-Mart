@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return (
+        isSignedIn() && (
+          request.auth.token.email == 'ashik140267@gmail.com' ||
+          exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        )
+      );
+    }
+
+    // 1. Store Content (Catalog, Banners, Categories, Settings)
+    match /store_content/{contentId} {
+      // Storefront can read catalog and settings
+      allow get, list: if isValidId(contentId);
+      // Only authenticated admin can modify store content
+      allow write: if isValidId(contentId) && isAdmin();
+    }
+
+    // 2. Orders (Customers submit orders, Admin manages fulfillment)
+    match /orders/{orderId} {
+      // Anyone can place a new order (validated payload)
+      allow create: if isValidId(orderId) &&
+        incoming().customerName is string && incoming().customerName.size() <= 100 &&
+        incoming().customerPhone is string && incoming().customerPhone.size() <= 20 &&
+        incoming().deliveryDistrict is string && incoming().deliveryDistrict.size() <= 50 &&
+        incoming().deliveryAddress is string && incoming().deliveryAddress.size() <= 300 &&
+        incoming().totalAmount is number && incoming().totalAmount >= 0;
+
+      // PII Protection: Only Admin can view, update, or cancel orders
+      allow read, update, delete: if isValidId(orderId) && isAdmin();
+    }
+
+    // 3. Admin Users
+    match /admins/{adminId} {
+      allow read, write: if isValidId(adminId) && isAdmin();
+    }
+
+    // 4. Audit Logs
+    match /audit_logs/{logId} {
+      allow read: if isValidId(logId) && isAdmin();
+      allow create: if isValidId(logId) && isAdmin();
+    }
+  }
+}
