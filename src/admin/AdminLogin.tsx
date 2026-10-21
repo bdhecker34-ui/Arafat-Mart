@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, ShieldAlert, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ShieldAlert, ArrowRight, ShieldCheck, Info } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { auth, googleProvider, signInWithPopup } from '../firebase';
 
@@ -10,12 +10,13 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel, onSwitchToSetup }) => {
-  const [email, setEmail] = useState('ashik140267@gmail.com');
+  const [email, setEmail] = useState('bdhecker34@gmail.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [domainWarning, setDomainWarning] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +39,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
 
   const handleGoogleSignIn = async () => {
     setError(null);
+    setDomainWarning(false);
     setGoogleLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -49,7 +51,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
         onLoginSuccess();
       }
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed. Please try again or use email.');
+      if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain'))) {
+        setDomainWarning(true);
+        setError('গিটহাব ডোমেনটি এখনও Firebase-এ অনুমোদিত নয়। নিচের ইমেইল ও পাসওয়ার্ড ফর্ম ব্যবহার করে এখনই সরাসরি লগইন করুন!');
+      } else {
+        setError(err.message || 'Google sign-in failed. Please try again or use email/password.');
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -73,9 +80,24 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-950/70 border border-rose-800 text-rose-200 text-xs rounded-xl flex items-start gap-2">
+          <div className="p-3 bg-rose-950/80 border border-rose-800 text-rose-200 text-xs rounded-xl flex items-start gap-2">
             <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span className="leading-relaxed">{error}</span>
+          </div>
+        )}
+
+        {domainWarning && (
+          <div className="p-3 bg-amber-950/60 border border-amber-700/60 text-amber-200 text-xs rounded-xl space-y-1.5">
+            <div className="flex items-center gap-1.5 font-bold text-amber-300">
+              <Info className="w-4 h-4 shrink-0" />
+              <span>Google Sign-in ডোমেন অনুমোদন নির্দেশিকা:</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-stone-300">
+              Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains-এ গিয়ে <code className="bg-stone-900 px-1 py-0.5 rounded text-amber-300">hecker34-ui.github.io</code> যোগ করুন।
+            </p>
+            <p className="text-[11px] font-semibold text-emerald-400">
+              💡 আপনি নিচের ফর্মে সরাসরি পাসওয়ার্ড দিয়ে এখনই কোনো বাধা ছাড়াই ঢুকতে পারেন।
+            </p>
           </div>
         )}
 
@@ -109,7 +131,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
 
         <div className="relative flex py-1 items-center">
           <div className="flex-grow border-t border-stone-700"></div>
-          <span className="flex-shrink mx-3 text-stone-500 text-[11px]">অথবা পাসওয়ার্ড দিয়ে লগইন</span>
+          <span className="flex-shrink mx-3 text-stone-500 text-[11px]">অথবা পাসওয়ার্ড দিয়ে লগইন করুন</span>
           <div className="flex-grow border-t border-stone-700"></div>
         </div>
 
@@ -125,7 +147,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ashik140267@gmail.com"
+                placeholder="bdhecker34@gmail.com"
                 className="w-full pl-9 pr-3 py-2 text-xs bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -181,7 +203,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
               onClick={onSwitchToSetup}
               className="text-xs text-amber-400 hover:underline cursor-pointer"
             >
-              প্রথমবার ব্যবহার করছেন? নতুন পাসওয়ার্ড সেটআপ করতে ক্লিক করুন
+              নতুন পাসওয়ার্ড তৈরি করতে চান? এখানে সেটআপ করুন
             </button>
           </div>
         )}

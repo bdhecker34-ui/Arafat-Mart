@@ -590,16 +590,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="text-stone-400 block mb-1">Image URL / Path</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-stone-300 text-xs font-semibold">ব্যানার ছবির ইউআরএল</label>
+                          <label className="text-xs bg-stone-700 hover:bg-stone-600 text-amber-300 px-2.5 py-0.5 rounded cursor-pointer flex items-center gap-1 transition-all">
+                            <span>📁 আপলোড করুন</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const url = await handleUploadMediaFile(file);
+                                  if (url) {
+                                    const copy = [...localContent.banners];
+                                    copy[idx].image = url;
+                                    setLocalContent({ ...localContent, banners: copy });
+                                  }
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
                         <input
                           type="text"
+                          placeholder="https://... অথবা আপলোড করুন"
                           value={slide.image}
                           onChange={(e) => {
                             const copy = [...localContent.banners];
                             copy[idx].image = e.target.value;
                             setLocalContent({ ...localContent, banners: copy });
                           }}
-                          className="w-full p-2 bg-stone-800 border border-stone-700 rounded text-white font-mono"
+                          className="w-full p-2 bg-stone-800 border border-stone-700 rounded text-white font-mono text-xs"
                         />
                       </div>
                     </div>
@@ -1525,13 +1547,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div>
-                <label className="text-stone-400 block mb-1">Square 1:1 Image URL</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-stone-300 text-xs font-semibold">ছবির ইউআরএল (Image URL)</label>
+                  <label className="text-xs bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded cursor-pointer font-medium flex items-center gap-1 shadow-sm transition-all">
+                    <span>📁 ডিভাইস থেকে ছবি দিন</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const url = await handleUploadMediaFile(file);
+                          if (url) {
+                            setEditingProduct({ ...editingProduct, image: url });
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
                 <input
                   type="text"
+                  placeholder="https://... বা ImgBB / PostImages লিঙ্ক দিন"
                   value={editingProduct.image}
                   onChange={(e) => setEditingProduct({ ...editingProduct, image: e.target.value })}
-                  className="w-full p-2 bg-stone-800 border border-stone-700 rounded text-white font-mono"
+                  className="w-full p-2 bg-stone-800 border border-stone-700 rounded text-white font-mono text-xs"
                 />
+                {editingProduct.image && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img
+                      src={editingProduct.image}
+                      alt="Preview"
+                      className="w-12 h-12 object-cover rounded border border-stone-600"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                    <span className="text-[11px] text-stone-400">ছবির বর্তমান প্রিভিউ</span>
+                  </div>
+                )}
               </div>
 
               <div>

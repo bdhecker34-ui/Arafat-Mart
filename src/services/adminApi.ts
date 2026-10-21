@@ -292,8 +292,8 @@ export const adminApi = {
         }
       }
 
-      // Store owner master login for ashik140267@gmail.com
-      if (cleanEmail === 'ashik140267@gmail.com' && password.length >= 6) {
+      // Store owner master login for bdhecker34@gmail.com
+      if ((cleanEmail === 'bdhecker34@gmail.com' || cleanEmail === 'ashik140267@gmail.com') && password.length >= 6) {
         const creds = { email: cleanEmail, passwordHash, setupDate: new Date().toISOString() };
         localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
         localStorage.setItem(SETUP_DONE_KEY, 'true');
@@ -361,7 +361,7 @@ export const adminApi = {
 
       if (storedCredsRaw) {
         const creds = JSON.parse(storedCredsRaw);
-        if (creds.passwordHash !== curHash && creds.email !== 'ashik140267@gmail.com') {
+        if (creds.passwordHash !== curHash && creds.email !== 'bdhecker34@gmail.com' && creds.email !== 'ashik140267@gmail.com') {
           return { success: false, error: 'Current password does not match.' };
         }
       }

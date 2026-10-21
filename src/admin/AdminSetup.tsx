@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Mail, Eye, EyeOff, AlertTriangle, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, Eye, EyeOff, ArrowRight, Info } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
 import { auth, googleProvider, signInWithPopup } from '../firebase';
 
@@ -10,18 +10,18 @@ interface AdminSetupProps {
 }
 
 export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel, onSwitchToLogin }) => {
-  const [email, setEmail] = useState('ashik140267@gmail.com');
+  const [email, setEmail] = useState('bdhecker34@gmail.com');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [domainWarning, setDomainWarning] = useState<boolean>(false);
 
   // Password strength validation
   const hasMinLength = password.length >= 8;
   const hasNumber = /\d/.test(password);
-
   const isPasswordStrong = hasMinLength && hasNumber;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,6 +56,7 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
 
   const handleGoogleSignIn = async () => {
     setError(null);
+    setDomainWarning(false);
     setGoogleLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -66,7 +67,12 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
         onSetupSuccess();
       }
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed. Please try again.');
+      if (err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain'))) {
+        setDomainWarning(true);
+        setError('গিটহাব ডোমেনটি এখনও Firebase-এ অনুমোদিত নয়। নিচের ইমেইল ও পাসওয়ার্ড ফর্ম পূরণ করে এখনই সেটআপ সম্পন্ন করুন!');
+      } else {
+        setError(err.message || 'Google sign-in failed. Please try again.');
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -92,6 +98,21 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
         {error && (
           <div className="p-3 bg-rose-950/70 border border-rose-800 text-rose-200 text-xs rounded-xl">
             {error}
+          </div>
+        )}
+
+        {domainWarning && (
+          <div className="p-3 bg-amber-950/60 border border-amber-700/60 text-amber-200 text-xs rounded-xl space-y-1.5">
+            <div className="flex items-center gap-1.5 font-bold text-amber-300">
+              <Info className="w-4 h-4 shrink-0" />
+              <span>Google Sign-in ডোমেন অনুমোদন:</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-stone-300">
+              Firebase Console &gt; Authentication &gt; Settings &gt; Authorized domains-এ গিয়ে <code className="bg-stone-900 px-1 py-0.5 rounded text-amber-300">hecker34-ui.github.io</code> যোগ করুন।
+            </p>
+            <p className="text-[11px] font-semibold text-emerald-400">
+              💡 আপনি নিচের ফর্মে সরাসরি পাসওয়ার্ড সেট করে এখনই অ্যাডমিনে ঢুকতে পারেন।
+            </p>
           </div>
         )}
 
@@ -142,7 +163,7 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ashik140267@gmail.com"
+                placeholder="bdhecker34@gmail.com"
                 className="w-full pl-9 pr-3 py-2 text-xs bg-stone-900 border border-stone-700 rounded-lg text-white placeholder-stone-500 focus:outline-none focus:border-amber-500"
               />
             </div>
