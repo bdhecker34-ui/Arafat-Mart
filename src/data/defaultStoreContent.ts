@@ -75,13 +75,13 @@ export const DEFAULT_STORE_CONTENT: AdminContentState = {
     address: 'Central Hub: Tejgaon I/A, Dhaka-1208, Bangladesh',
   },
   coupons: [
-    { code: 'ARAFAT10', discountPercent: 10, minSpend: 1500, active: true },
+    { code: 'EASY10', discountPercent: 10, minSpend: 1500, active: true },
     { code: 'FREESHIP', discountPercent: 0, minSpend: 1000, active: true, isFreeShipping: true },
-    { code: 'EID2026', discountPercent: 15, minSpend: 2500, active: true },
+    { code: 'EASY2026', discountPercent: 15, minSpend: 2500, active: true },
   ],
   settings: {
-    storeName: 'Arafat Mart',
-    tagline: 'Everyday Essentials, Picked with Care',
+    storeName: 'Easy Mart',
+    tagline: 'সবকিছু, এক ঠিকানায়।',
     maintenanceMode: false,
     freeShippingThreshold: 1999,
     dhakaDeliveryFee: 60,
@@ -96,7 +96,7 @@ export const DEFAULT_STORE_CONTENT: AdminContentState = {
     showNationwideBanner: true,
   },
   footer: {
-    aboutText: 'Everyday fashion, gadgets, and home essentials curated specifically for Bangladeshi homes. Handloom craftsmanship, reliable electronics, genuine prices in ৳ BDT, and hassle-free Cash on Delivery across all 64 districts.',
-    copyright: '© 2026 Arafat Mart. All rights reserved across Bangladesh.',
+    aboutText: 'Easy Mart — সবকিছু, এক ঠিকানায়। ফ্যাশন, গ্যাজেটস ও নিত্যপ্রয়োজনীয় সেরা পণ্য সারাদেশে দ্রুত ক্যাশ অন ডেলিভারিতে পৌঁছে দেওয়া আমাদের অঙ্গীকার।',
+    copyright: '© 2026 Easy Mart. All rights reserved across Bangladesh.',
   },
 };

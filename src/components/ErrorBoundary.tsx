@@ -19,7 +19,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error in Arafat Mart UI:', error, errorInfo);
+    console.error('Uncaught error in Easy Mart UI:', error, errorInfo);
   }
 
   public render() {

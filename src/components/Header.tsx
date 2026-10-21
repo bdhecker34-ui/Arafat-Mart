@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   noticeText,
   noticeEnabled = true,
   whatsappNumber = '01410556747',
-  storeName = 'Arafat Mart',
+  storeName = 'Easy Mart',
 }) => {
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -75,24 +75,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Main Navigation Bar: Strict 3-Zone Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-8 h-18">
+        <div className="flex items-center justify-between gap-6 sm:gap-8 min-h-[76px] py-1.5">
           
-          {/* Zone 1: Brand Wordmark */}
-          <div className="flex items-center gap-3 shrink-0">
-            <a href="#" className="flex items-center gap-2.5 group">
+          {/* Zone 1: Easy Mart Brand Header Banner */}
+          <div className="flex items-center shrink-0">
+            <a href="#" className="flex items-center group py-0.5" title="Easy Mart — সবকিছু, এক ঠিকানায়।">
               <img
-                src="https://storage.helloreaddy.io/project_files/bac25af4-e5d9-4960-9929-b3c63df9616f/e5c539c0-4b1e-4ba7-a9a2-900df953d086_compressed_file_000000008294821182132f227ab6dbdb.webp"
-                alt="Arafat Mart Logo"
-                className="w-9 h-9 object-contain rounded-lg border border-stone-300/80 bg-white p-0.5 shadow-xs"
+                src="./assets/images/easy_mart_header.png"
+                alt="Easy Mart — সবকিছু, এক ঠিকানায়।"
+                className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-[1.02]"
               />
-              <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight text-stone-900 group-hover:text-amber-800 transition-colors">
-                  Arafat Mart
-                </span>
-                <span className="text-[10px] tracking-widest uppercase font-semibold text-stone-500">
-                  Everyday Essentials
-                </span>
-              </div>
             </a>
           </div>
 

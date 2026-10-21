@@ -313,7 +313,7 @@ export const MOCK_REVIEWS = [
     location: 'Gulshan, Dhaka',
     rating: 5,
     date: '3 days ago',
-    comment: 'The panjabi fabric is extraordinarily comfortable. The subtle neck embroidery looks even better in person than photos. Got delivered to Gulshan in just 26 hours. Truly impressed with Arafat Mart!',
+    comment: 'The panjabi fabric is extraordinarily comfortable. The subtle neck embroidery looks even better in person than photos. Got delivered to Gulshan in just 26 hours. Truly impressed with Easy Mart!',
     verified: true
   },
   {

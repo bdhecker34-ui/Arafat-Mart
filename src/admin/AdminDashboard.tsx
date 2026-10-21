@@ -243,7 +243,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Mobile Top Header */}
       <div className="md:hidden bg-stone-900 border-b border-stone-800 p-4 flex items-center justify-between z-30">
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-amber-500 tracking-tight text-sm uppercase">Arafat Mart</span>
+          <img src="./assets/images/easy_mart_logo.png" alt="Easy Mart Logo" className="w-6 h-6 object-contain rounded bg-black" />
+          <span className="font-extrabold text-emerald-400 tracking-tight text-sm uppercase">Easy Mart</span>
           <span className="text-[10px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">Admin</span>
         </div>
         <div className="flex items-center gap-2">
@@ -272,11 +273,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div>
           {/* Brand Wordmark */}
           <div className="p-5 border-b border-stone-800 hidden md:flex items-center justify-between">
-            <div>
-              <h1 className="font-extrabold text-amber-400 text-base tracking-tight">
-                Arafat Mart
-              </h1>
-              <p className="text-[11px] text-stone-400 font-medium">Control Console</p>
+            <div className="flex items-center gap-2.5">
+              <img src="./assets/images/easy_mart_logo.png" alt="Easy Mart Logo" className="w-8 h-8 object-contain rounded-lg bg-black p-0.5 border border-stone-700" />
+              <div>
+                <h1 className="font-extrabold text-emerald-400 text-base tracking-tight">
+                  Easy Mart
+                </h1>
+                <p className="text-[11px] text-stone-400 font-medium">Control Console</p>
+              </div>
             </div>
             <button
               onClick={onViewStore}
@@ -1439,14 +1443,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="space-y-6 max-w-3xl">
               <div>
                 <h3 className="text-sm font-bold text-white">Android Application & APK Build Architecture</h3>
-                <p className="text-xs text-stone-400">Production guidelines for publishing Arafat Mart on Android.</p>
+                <p className="text-xs text-stone-400">Production guidelines for publishing Easy Mart on Android.</p>
               </div>
 
               <div className="p-5 bg-stone-900 border border-stone-800 rounded-xl space-y-4 text-xs">
                 <div className="space-y-2">
-                  <h4 className="font-bold text-amber-400 text-sm">Option A: Instant Installable Android PWA</h4>
+                  <h4 className="font-bold text-emerald-400 text-sm">Option A: Instant Installable Android PWA</h4>
                   <p className="text-stone-300 leading-relaxed">
-                    Arafat Mart is configured with a Progressive Web App manifest and service worker. When Android users open the website in Chrome, they receive the prompt: <strong>&ldquo;Add Arafat Mart to Home screen&rdquo;</strong>, which installs it with an Android app icon, splash screen, and full-screen experience without browser URL bars.
+                    Easy Mart is configured with a Progressive Web App manifest and service worker. When Android users open the website in Chrome, they receive the prompt: <strong>&ldquo;Add Easy Mart to Home screen&rdquo;</strong>, which installs it with an Android app icon, splash screen, and full-screen experience without browser URL bars.
                   </p>
                 </div>
 

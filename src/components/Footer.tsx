@@ -44,15 +44,20 @@ export const Footer: React.FC<FooterProps> = ({
           
           {/* Column 1: Brand Wordmark & Story (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <img
-                src="https://storage.helloreaddy.io/project_files/bac25af4-e5d9-4960-9929-b3c63df9616f/e5c539c0-4b1e-4ba7-a9a2-900df953d086_compressed_file_000000008294821182132f227ab6dbdb.webp"
-                alt="Arafat Mart Logo"
-                className="w-8 h-8 object-contain rounded-md bg-white p-0.5"
+                src="./assets/images/easy_mart_logo.png"
+                alt="Easy Mart Logo"
+                className="w-10 h-10 object-contain rounded-xl bg-black p-1 border border-stone-700 shadow-md"
               />
-              <span className="text-xl font-bold tracking-tight text-white">
-                Arafat Mart
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold tracking-tight text-white">
+                  Easy Mart
+                </span>
+                <span className="text-xs text-emerald-400 font-medium">
+                  সবকিছু, এক ঠিকানায়।
+                </span>
+              </div>
             </div>
 
             <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
@@ -218,7 +223,7 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Bar: Copyright, Terms & Admin Console */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
           <div>
-            © 2026 Arafat Mart. All rights reserved across Bangladesh.
+            © 2026 Easy Mart. All rights reserved across Bangladesh.
           </div>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-stone-300 transition-colors">Privacy Policy</a>

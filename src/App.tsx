@@ -282,7 +282,7 @@ export default function App() {
     const email = adminApi.getAdminEmail() || 'bdhecker34@gmail.com';
     setAdminEmail(email);
     setCurrentView('admin-dashboard');
-    showToast('Welcome to Arafat Mart Admin Console');
+    showToast('Welcome to Easy Mart Admin Console');
   };
 
   // Handle Admin Logout
@@ -564,7 +564,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              {storeContent.settings?.storeName || 'Arafat Mart'} is Under Maintenance
+              {storeContent.settings?.storeName || 'Easy Mart'} is Under Maintenance
             </h1>
             <p className="mt-2 text-xs text-stone-400 leading-relaxed">
               We are currently updating our seasonal stock and logistics channels. We will be back online shortly!
