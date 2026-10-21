@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff, ShieldAlert, ArrowRight, ShieldCheck, Info } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
-import { auth, googleProvider, signInWithPopup } from '../firebase';
+import { auth, googleProvider, signInWithPopup, signOut } from '../firebase';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -45,6 +45,21 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       if (user && user.email) {
+        const emailLower = user.email.toLowerCase().trim();
+        const configuredEmail = adminApi.getAdminEmail()?.toLowerCase().trim();
+        
+        // Strict Authorization: Only allow the owner bdhecker34@gmail.com, ashik140267@gmail.com, or configured email
+        const isAuthorized =
+          emailLower === 'bdhecker34@gmail.com' ||
+          emailLower === 'ashik140267@gmail.com' ||
+          (configuredEmail && emailLower === configuredEmail);
+
+        if (!isAuthorized) {
+          setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) এই প্যানেলে প্রবেশ করতে পারবেন।`);
+          await signOut(auth);
+          return;
+        }
+
         // Authorize admin
         adminApi.setSession(`firebase_${user.uid}`, user.email);
         localStorage.setItem('arafat_mart_setup_done', 'true');

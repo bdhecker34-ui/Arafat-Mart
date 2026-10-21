@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Mail, Eye, EyeOff, ArrowRight, Info } from 'lucide-react';
 import { adminApi } from '../services/adminApi';
-import { auth, googleProvider, signInWithPopup } from '../firebase';
+import { auth, googleProvider, signInWithPopup, signOut } from '../firebase';
 
 interface AdminSetupProps {
   onSetupSuccess: () => void;
@@ -62,6 +62,17 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       if (user && user.email) {
+        const emailLower = user.email.toLowerCase().trim();
+        const isAuthorized =
+          emailLower === 'bdhecker34@gmail.com' ||
+          emailLower === 'ashik140267@gmail.com';
+
+        if (!isAuthorized) {
+          setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র অনুমোদিত অ্যাডমিন (bdhecker34@gmail.com) সেটআপ করতে পারবেন।`);
+          await signOut(auth);
+          return;
+        }
+
         adminApi.setSession(`firebase_${user.uid}`, user.email);
         localStorage.setItem('arafat_mart_setup_done', 'true');
         onSetupSuccess();
