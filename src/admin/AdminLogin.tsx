@@ -6,10 +6,11 @@ import { auth, googleProvider, signInWithPopup } from '../firebase';
 interface AdminLoginProps {
   onLoginSuccess: () => void;
   onCancel: () => void;
+  onSwitchToSetup?: () => void;
 }
 
-export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel }) => {
-  const [email, setEmail] = useState('');
+export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel, onSwitchToSetup }) => {
+  const [email, setEmail] = useState('ashik140267@gmail.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
       if (res.success) {
         onLoginSuccess();
       } else {
-        setError(res.error || 'Invalid credentials or account locked.');
+        setError(res.error || 'ভুল ইমেইল বা পাসওয়ার্ড। আবার চেষ্টা করুন।');
       }
     } catch (err: any) {
       setError(err.message || 'Login attempt failed. Please try again.');
@@ -43,7 +44,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
       const user = result.user;
       if (user && user.email) {
         // Authorize admin
-        adminApi.setSession(`firebase_token_${user.uid}`, user.email);
+        adminApi.setSession(`firebase_${user.uid}`, user.email);
+        localStorage.setItem('arafat_mart_setup_done', 'true');
         onLoginSuccess();
       }
     } catch (err: any) {
@@ -63,15 +65,15 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
             <Lock className="w-7 h-7" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">
-            Admin Control Console
+            অ্যাডমিন লগইন (Admin Login)
           </h1>
           <p className="text-xs text-stone-400">
-            Arafat Mart Secure Administrative Login (Firebase Integrated)
+            আরাফাত মার্ট অ্যাডমিন কন্ট্রোল প্যানেল
           </p>
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-950/50 border border-rose-800 text-rose-200 text-xs rounded-xl flex items-start gap-2">
+          <div className="p-3 bg-rose-950/70 border border-rose-800 text-rose-200 text-xs rounded-xl flex items-start gap-2">
             <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -102,19 +104,19 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
             />
           </svg>
-          <span>{googleLoading ? 'Connecting to Google...' : 'Sign in with Google (Firebase)'}</span>
+          <span>{googleLoading ? 'কানেক্ট হচ্ছে...' : 'Google দিয়ে সরাসরি প্রবেশ করুন'}</span>
         </button>
 
         <div className="relative flex py-1 items-center">
           <div className="flex-grow border-t border-stone-700"></div>
-          <span className="flex-shrink mx-3 text-stone-500 text-[11px]">or login with email</span>
+          <span className="flex-shrink mx-3 text-stone-500 text-[11px]">অথবা পাসওয়ার্ড দিয়ে লগইন</span>
           <div className="flex-grow border-t border-stone-700"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-stone-300 mb-1">
-              Admin Email
+              অ্যাডমিন ইমেইল (Admin Email)
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
@@ -131,7 +133,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
 
           <div>
             <label className="block text-xs font-semibold text-stone-300 mb-1">
-              Password
+              পাসওয়ার্ড (Password)
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
@@ -159,7 +161,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
               disabled={loading}
               className="flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-500 disabled:bg-stone-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
             >
-              <span>{loading ? 'Authenticating...' : 'Sign In to Dashboard'}</span>
+              <span>{loading ? 'যাচাই হচ্ছে...' : 'লগইন করুন (Sign In)'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
@@ -167,14 +169,26 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
               onClick={onCancel}
               className="py-2.5 px-4 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl border border-stone-700 transition-colors cursor-pointer"
             >
-              Back to Store
+              দোকানে ফিরে যান
             </button>
           </div>
         </form>
 
-        <div className="pt-4 border-t border-stone-700/60 flex items-center justify-center gap-2 text-[11px] text-stone-500">
+        {onSwitchToSetup && (
+          <div className="pt-3 text-center">
+            <button
+              type="button"
+              onClick={onSwitchToSetup}
+              className="text-xs text-amber-400 hover:underline cursor-pointer"
+            >
+              প্রথমবার ব্যবহার করছেন? নতুন পাসওয়ার্ড সেটআপ করতে ক্লিক করুন
+            </button>
+          </div>
+        )}
+
+        <div className="pt-3 border-t border-stone-700/60 flex items-center justify-center gap-2 text-[11px] text-stone-500">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Connected to Firebase Firestore & Google Auth</span>
+          <span>Firebase Firestore & Cloud Auth সুরক্ষিত</span>
         </div>
 
       </div>

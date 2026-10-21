@@ -523,6 +523,7 @@ export default function App() {
     return (
       <AdminSetup
         onSetupSuccess={handleAdminSetupSuccess}
+        onSwitchToLogin={() => setCurrentView('admin-login')}
         onCancel={() => {
           setCurrentView('store');
           window.location.hash = '';
@@ -535,6 +536,7 @@ export default function App() {
     return (
       <AdminLogin
         onLoginSuccess={handleAdminLoginSuccess}
+        onSwitchToSetup={() => setCurrentView('admin-setup')}
         onCancel={() => {
           setCurrentView('store');
           window.location.hash = '';
