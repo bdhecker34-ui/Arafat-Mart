@@ -168,8 +168,14 @@ export const adminApi = {
   },
 
   setSession(token: string, email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail !== 'bdhecker34@gmail.com') {
+      console.warn('Security alert: blocked non-admin session:', cleanEmail);
+      this.clearSession();
+      return;
+    }
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(ADMIN_EMAIL_KEY, email);
+    localStorage.setItem(ADMIN_EMAIL_KEY, cleanEmail);
   },
 
   clearSession() {
@@ -178,11 +184,19 @@ export const adminApi = {
   },
 
   getAdminEmail(): string | null {
-    return localStorage.getItem(ADMIN_EMAIL_KEY);
+    const email = localStorage.getItem(ADMIN_EMAIL_KEY);
+    return email === 'bdhecker34@gmail.com' ? email : null;
   },
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    const email = localStorage.getItem(ADMIN_EMAIL_KEY)?.trim().toLowerCase();
+    if (!token || !email) return false;
+    if (email !== 'bdhecker34@gmail.com') {
+      this.clearSession();
+      return false;
+    }
+    return true;
   },
 
   async checkSetupStatus(): Promise<{ isSetupCompleted: boolean; adminEmail?: string }> {
@@ -213,6 +227,9 @@ export const adminApi = {
 
   async initialSetup(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail !== 'bdhecker34@gmail.com') {
+      return { success: false, error: 'অননুমোদিত ইমেইল! শুধুমাত্র bdhecker34@gmail.com এর জন্য অ্যাডমিন প্যানেল সংরক্ষিত।' };
+    }
 
     // 1. Attempt server setup if fullstack Node backend is accessible
     const res = await safeFetchJson<{ error?: string; token?: string; email?: string }>('/api/admin/setup', {
@@ -256,6 +273,9 @@ export const adminApi = {
 
   async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail !== 'bdhecker34@gmail.com') {
+      return { success: false, error: 'অননুমোদিত ইমেইল! শুধুমাত্র bdhecker34@gmail.com দিয়ে অ্যাডমিনে প্রবেশ করা যাবে।' };
+    }
 
     // 1. Attempt server login if backend is running
     const res = await safeFetchJson<{ error?: string; token?: string; email?: string }>('/api/admin/login', {
@@ -293,7 +313,7 @@ export const adminApi = {
       }
 
       // Store owner master login for bdhecker34@gmail.com
-      if ((cleanEmail === 'bdhecker34@gmail.com' || cleanEmail === 'ashik140267@gmail.com') && password.length >= 6) {
+      if (cleanEmail === 'bdhecker34@gmail.com' && password.length >= 6) {
         const creds = { email: cleanEmail, passwordHash, setupDate: new Date().toISOString() };
         localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
         localStorage.setItem(SETUP_DONE_KEY, 'true');
@@ -361,7 +381,7 @@ export const adminApi = {
 
       if (storedCredsRaw) {
         const creds = JSON.parse(storedCredsRaw);
-        if (creds.passwordHash !== curHash && creds.email !== 'bdhecker34@gmail.com' && creds.email !== 'ashik140267@gmail.com') {
+        if (creds.passwordHash !== curHash && creds.email !== 'bdhecker34@gmail.com') {
           return { success: false, error: 'Current password does not match.' };
         }
       }

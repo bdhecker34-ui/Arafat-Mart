@@ -83,6 +83,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [deleteType, setDeleteType] = useState<'product' | 'banner' | 'media' | null>(null);
   const [mediaToDelete, setMediaToDelete] = useState<string | null>(null);
 
+  // STRICT ACCESS CONTROL GATE
+  if (adminEmail?.toLowerCase().trim() !== 'bdhecker34@gmail.com') {
+    return (
+      <div className="min-h-screen bg-stone-950 text-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-stone-900 border border-rose-700/60 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-16 h-16 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto border border-rose-500/40 text-2xl font-bold">
+            ✕
+          </div>
+          <h2 className="text-xl font-bold text-white">অ্যাক্সেস ডিনাইড (Access Denied)</h2>
+          <p className="text-stone-300 text-xs leading-relaxed">
+            এই অ্যাকাউন্টটি (<span className="text-rose-400 font-mono">{adminEmail || 'Unknown'}</span>) অনুমোদিত নয়। শুধুমাত্র প্রধান অ্যাডমিন <strong className="text-amber-400">bdhecker34@gmail.com</strong> এই প্যানেলে প্রবেশ করতে পারেন।
+          </p>
+          <button
+            onClick={onLogout}
+            className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-lg"
+          >
+            লগআউট করে বেরিয়ে যান
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Password Modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPw, setCurrentPw] = useState('');

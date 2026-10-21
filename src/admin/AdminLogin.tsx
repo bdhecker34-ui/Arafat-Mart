@@ -23,6 +23,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
     setError(null);
     setLoading(true);
 
+    if (email.trim().toLowerCase() !== 'bdhecker34@gmail.com') {
+      setError('অননুমোদিত ইমেইল! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) এর জন্য এই প্যানেল সংরক্ষিত।');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await adminApi.login(email, password);
       if (res.success) {
@@ -48,11 +54,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
         const emailLower = user.email.toLowerCase().trim();
         const configuredEmail = adminApi.getAdminEmail()?.toLowerCase().trim();
         
-        // Strict Authorization: Only allow the owner bdhecker34@gmail.com, ashik140267@gmail.com, or configured email
-        const isAuthorized =
-          emailLower === 'bdhecker34@gmail.com' ||
-          emailLower === 'ashik140267@gmail.com' ||
-          (configuredEmail && emailLower === configuredEmail);
+        // Strict Authorization: ONLY allow bdhecker34@gmail.com
+        const isAuthorized = emailLower === 'bdhecker34@gmail.com';
 
         if (!isAuthorized) {
           setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) এই প্যানেলে প্রবেশ করতে পারবেন।`);

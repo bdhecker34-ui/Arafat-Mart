@@ -25,7 +25,7 @@ import {
   saveStoreContentToFirestore,
   saveOrderToFirestore,
 } from './services/firestoreService';
-import { testConnection } from './firebase';
+import { testConnection, auth, signOut } from './firebase';
 
 import { BANGLADESH_DIVISIONS } from './data/bangladeshDistricts';
 import { Product, ProductCategory, CartItem, Order } from './types';
@@ -223,11 +223,15 @@ export default function App() {
     setIsVerifyingAdmin(true);
     try {
       if (adminApi.isAuthenticated()) {
-        const email = adminApi.getAdminEmail() || 'admin@arafatmart.com';
-        setAdminEmail(email);
-        setCurrentView('admin-dashboard');
-        window.location.hash = 'admin';
-        return;
+        const email = adminApi.getAdminEmail()?.trim().toLowerCase();
+        if (email === 'bdhecker34@gmail.com') {
+          setAdminEmail('bdhecker34@gmail.com');
+          setCurrentView('admin-dashboard');
+          window.location.hash = 'admin';
+          return;
+        } else {
+          adminApi.clearSession();
+        }
       }
 
       // Check if one-time setup has been completed on the trusted backend
@@ -275,15 +279,20 @@ export default function App() {
 
   // Handle Admin Login Success
   const handleAdminLoginSuccess = () => {
-    const email = adminApi.getAdminEmail() || 'admin@arafatmart.com';
+    const email = adminApi.getAdminEmail() || 'bdhecker34@gmail.com';
     setAdminEmail(email);
     setCurrentView('admin-dashboard');
     showToast('Welcome to Arafat Mart Admin Console');
   };
 
   // Handle Admin Logout
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
     adminApi.logout();
+    try {
+      await signOut(auth);
+    } catch {
+      // ignore
+    }
     setAdminEmail('');
     setCurrentView('store');
     window.location.hash = '';

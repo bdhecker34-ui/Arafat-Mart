@@ -38,6 +38,11 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
       return;
     }
 
+    if (email.trim().toLowerCase() !== 'bdhecker34@gmail.com') {
+      setError('অননুমোদিত ইমেইল! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) সেটআপ করতে পারবেন।');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -63,9 +68,7 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
       const user = result.user;
       if (user && user.email) {
         const emailLower = user.email.toLowerCase().trim();
-        const isAuthorized =
-          emailLower === 'bdhecker34@gmail.com' ||
-          emailLower === 'ashik140267@gmail.com';
+        const isAuthorized = emailLower === 'bdhecker34@gmail.com';
 
         if (!isAuthorized) {
           setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র অনুমোদিত অ্যাডমিন (bdhecker34@gmail.com) সেটআপ করতে পারবেন।`);
