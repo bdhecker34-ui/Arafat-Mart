@@ -75,15 +75,15 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Main Navigation Bar: Strict 3-Zone Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-6 sm:gap-8 min-h-[76px] py-1.5">
+        <div className="flex items-center justify-between gap-4 sm:gap-8 min-h-[86px] sm:min-h-[96px] py-2">
           
           {/* Zone 1: Easy Mart Brand Header Banner */}
           <div className="flex items-center shrink-0">
-            <a href="#" className="flex items-center group py-0.5" title="Easy Mart — সবকিছু, এক ঠিকানায়।">
+            <a href="#" className="flex items-center group py-1" title="Easy Mart — সবকিছু, এক ঠিকানায়।">
               <img
                 src="./assets/images/easy_mart_header.png"
                 alt="Easy Mart — সবকিছু, এক ঠিকানায়।"
-                className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+                className="h-14 sm:h-16 md:h-20 lg:h-22 w-auto max-w-[220px] sm:max-w-[280px] md:max-w-none object-contain transition-transform group-hover:scale-[1.03]"
               />
             </a>
           </div>
