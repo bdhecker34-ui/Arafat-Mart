@@ -33,10 +33,18 @@ export interface CouponItem {
   expiresAt?: string;
 }
 
+export interface SocialLinks {
+  facebook?: string;
+  youtube?: string;
+  instagram?: string;
+  tiktok?: string;
+}
+
 export interface AdminContentState {
   banners: BannerItem[];
   products: Product[];
   categories: CategoryItem[];
+  social?: SocialLinks;
   notice: {
     enabled: boolean;
     text: string;

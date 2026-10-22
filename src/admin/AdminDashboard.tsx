@@ -300,7 +300,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               { id: 'categories', label: 'Categories', icon: Layers },
               { id: 'homepage', label: 'Homepage Layout', icon: Sliders },
               { id: 'notices', label: 'Notice & Announcements', icon: Bell },
-              { id: 'contact', label: 'Contact & Payment Numbers', icon: PhoneCall },
+              { id: 'contact', label: 'Contact & Social Links', icon: PhoneCall },
               { id: 'coupons', label: 'Vouchers & Coupons', icon: Tag },
               { id: 'orders', label: 'Orders & 64 Districts', icon: Truck },
               { id: 'media', label: 'Media & Uploads', icon: Images },
@@ -926,7 +926,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* ================= 6. CONTACT & PAYMENT NUMBERS TAB ================= */}
           {activeTab === 'contact' && (
-            <div className="space-y-6 max-w-2xl">
+            <div className="space-y-6 max-w-3xl">
               <div>
                 <h3 className="text-sm font-bold text-white">Customer Support & Payment Accounts</h3>
                 <p className="text-xs text-stone-400">
@@ -1028,6 +1028,206 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     }
                     className="w-full p-2.5 bg-stone-800 border border-stone-700 rounded text-white"
                   />
+                </div>
+              </div>
+
+              {/* ================= SOCIAL MEDIA PLATFORMS SECTION ================= */}
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>সোশ্যাল মিডিয়া প্ল্যাটফর্ম ও লিংক (Social Media Links)</span>
+                    </h3>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      ওয়েবসাইটের নিচে ফেসবুক, ইউটিউব, ইনস্টাগ্রাম ও টিকটক লিংক প্রদর্শন করুন। ইউজাররা ক্লিক করলে সরাসরি আপনার পেজ ওপেন হবে।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-5 bg-stone-900 border border-stone-800 rounded-xl space-y-5 text-xs">
+                  {/* Facebook Field */}
+                  <div className="space-y-1.5 p-3.5 bg-stone-800/60 rounded-xl border border-stone-800">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-[#1877F2] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                          f
+                        </span>
+                        <span>Facebook Page / Profile Link (ফেসবুক পেজ লিংক)</span>
+                      </label>
+                      {localContent.social?.facebook && (
+                        <a
+                          href={localContent.social.facebook.startsWith('http') ? localContent.social.facebook : `https://${localContent.social.facebook}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 bg-blue-950/40 px-2 py-0.5 rounded border border-blue-800/50"
+                        >
+                          ভিজিট করে টেস্ট করুন <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      value={localContent.social?.facebook || ''}
+                      onChange={(e) =>
+                        setLocalContent({
+                          ...localContent,
+                          social: {
+                            ...(localContent.social || {}),
+                            facebook: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://facebook.com/your-page-username"
+                      className="w-full p-2.5 bg-stone-900 border border-stone-700 rounded text-white font-mono text-xs focus:border-blue-500 focus:outline-none"
+                    />
+                    <p className="text-[11px] text-stone-500">
+                      উদাহরণ: <span className="font-mono text-stone-400">https://facebook.com/easymartbd</span>
+                    </p>
+                  </div>
+
+                  {/* YouTube Field */}
+                  <div className="space-y-1.5 p-3.5 bg-stone-800/60 rounded-xl border border-stone-800">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-[#FF0000] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                          ▶
+                        </span>
+                        <span>YouTube Channel Link (ইউটিউব চ্যানেল লিংক)</span>
+                      </label>
+                      {localContent.social?.youtube && (
+                        <a
+                          href={localContent.social.youtube.startsWith('http') ? localContent.social.youtube : `https://${localContent.social.youtube}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-800/50"
+                        >
+                          ভিজিট করে টেস্ট করুন <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      value={localContent.social?.youtube || ''}
+                      onChange={(e) =>
+                        setLocalContent({
+                          ...localContent,
+                          social: {
+                            ...(localContent.social || {}),
+                            youtube: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://youtube.com/@your-channel"
+                      className="w-full p-2.5 bg-stone-900 border border-stone-700 rounded text-white font-mono text-xs focus:border-rose-500 focus:outline-none"
+                    />
+                    <p className="text-[11px] text-stone-500">
+                      উদাহরণ: <span className="font-mono text-stone-400">https://youtube.com/@easymartbd</span>
+                    </p>
+                  </div>
+
+                  {/* Instagram Field */}
+                  <div className="space-y-1.5 p-3.5 bg-stone-800/60 rounded-xl border border-stone-800">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                          📷
+                        </span>
+                        <span>Instagram Profile Link (ইনস্টাগ্রাম প্রোফাইল লিংক)</span>
+                      </label>
+                      {localContent.social?.instagram && (
+                        <a
+                          href={localContent.social.instagram.startsWith('http') ? localContent.social.instagram : `https://${localContent.social.instagram}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-pink-400 hover:text-pink-300 font-semibold flex items-center gap-1 bg-pink-950/40 px-2 py-0.5 rounded border border-pink-800/50"
+                        >
+                          ভিজিট করে টেস্ট করুন <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      value={localContent.social?.instagram || ''}
+                      onChange={(e) =>
+                        setLocalContent({
+                          ...localContent,
+                          social: {
+                            ...(localContent.social || {}),
+                            instagram: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://instagram.com/your-username"
+                      className="w-full p-2.5 bg-stone-900 border border-stone-700 rounded text-white font-mono text-xs focus:border-pink-500 focus:outline-none"
+                    />
+                    <p className="text-[11px] text-stone-500">
+                      উদাহরণ: <span className="font-mono text-stone-400">https://instagram.com/easymartbd</span>
+                    </p>
+                  </div>
+
+                  {/* TikTok Field */}
+                  <div className="space-y-1.5 p-3.5 bg-stone-800/60 rounded-xl border border-stone-800">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-black border border-cyan-400 text-cyan-400 flex items-center justify-center font-bold text-xs shadow-sm">
+                          ♪
+                        </span>
+                        <span>TikTok Profile Link (টিকটক প্রোফাইল লিংক)</span>
+                      </label>
+                      {localContent.social?.tiktok && (
+                        <a
+                          href={localContent.social.tiktok.startsWith('http') ? localContent.social.tiktok : `https://${localContent.social.tiktok}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/50"
+                        >
+                          ভিজিট করে টেস্ট করুন <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <input
+                      type="url"
+                      value={localContent.social?.tiktok || ''}
+                      onChange={(e) =>
+                        setLocalContent({
+                          ...localContent,
+                          social: {
+                            ...(localContent.social || {}),
+                            tiktok: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder="https://tiktok.com/@your-username"
+                      className="w-full p-2.5 bg-stone-900 border border-stone-700 rounded text-white font-mono text-xs focus:border-cyan-500 focus:outline-none"
+                    />
+                    <p className="text-[11px] text-stone-500">
+                      উদাহরণ: <span className="font-mono text-stone-400">https://tiktok.com/@easymartbd</span>
+                    </p>
+                  </div>
+
+                  {/* Live Status Summary Card */}
+                  <div className="p-3 bg-stone-800/40 border border-stone-700/60 rounded-xl space-y-2">
+                    <span className="text-[11px] font-bold text-stone-300 uppercase tracking-wider block">
+                      লাইভ স্ট্যাটাস প্রিভিউ (Live Status on Website)
+                    </span>
+                    <p className="text-[11px] text-stone-400">
+                      উপরে যেকোনো লিংক পরিবর্তন করে উপরের ডানদিকের <strong>"Save Changes"</strong> বাটনে ক্লিক করলে তা সরাসরি ওয়েবসাইটে লাইভ সেভ হয়ে যাবে।
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 ${localContent.social?.facebook ? 'bg-blue-900/60 text-blue-300 border border-blue-700' : 'bg-stone-800 text-stone-500'}`}>
+                        Facebook: {localContent.social?.facebook ? 'সংযুক্ত আছে' : 'দেওয়া নেই'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 ${localContent.social?.youtube ? 'bg-rose-900/60 text-rose-300 border border-rose-700' : 'bg-stone-800 text-stone-500'}`}>
+                        YouTube: {localContent.social?.youtube ? 'সংযুক্ত আছে' : 'দেওয়া নেই'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 ${localContent.social?.instagram ? 'bg-pink-900/60 text-pink-300 border border-pink-700' : 'bg-stone-800 text-stone-500'}`}>
+                        Instagram: {localContent.social?.instagram ? 'সংযুক্ত আছে' : 'দেওয়া নেই'}
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 ${localContent.social?.tiktok ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-700' : 'bg-stone-800 text-stone-500'}`}>
+                        TikTok: {localContent.social?.tiktok ? 'সংযুক্ত আছে' : 'দেওয়া নেই'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

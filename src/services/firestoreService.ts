@@ -12,9 +12,11 @@ import {
   query,
   orderBy,
   limit,
+  where,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { AdminContentState, AuditLogEntry } from './adminApi';
+import { UserProfile } from '../types';
 
 const STORE_CONTENT_DOC = 'main_config';
 
@@ -108,6 +110,8 @@ export async function saveOrderToFirestore(order: {
   status: string;
   items: any[];
   notes?: string;
+  userId?: string;
+  userEmail?: string;
 }): Promise<{ success: boolean; id: string }> {
   const path = `orders/${order.orderId}`;
   try {
@@ -121,6 +125,89 @@ export async function saveOrderToFirestore(order: {
     handleFirestoreError(error, OperationType.CREATE, path);
     return { success: false, id: order.orderId };
   }
+}
+
+/**
+ * Save / Update Customer User Profile
+ */
+export async function saveUserProfileToFirestore(
+  userId: string,
+  profile: Partial<UserProfile>
+): Promise<{ success: boolean; error?: string }> {
+  const path = `users/${userId}`;
+  try {
+    const userDoc = doc(db, 'users', userId);
+    await setDoc(
+      userDoc,
+      {
+        ...profile,
+        uid: userId,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+    return { success: true };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to save profile' };
+  }
+}
+
+/**
+ * Fetch Customer User Profile
+ */
+export async function getUserProfileFromFirestore(
+  userId: string
+): Promise<UserProfile | null> {
+  const path = `users/${userId}`;
+  try {
+    const userDoc = doc(db, 'users', userId);
+    const snap = await getDoc(userDoc);
+    if (snap.exists()) {
+      return snap.data() as UserProfile;
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to Orders placed by a specific signed-in user
+ */
+export function subscribeUserOrders(
+  userId: string,
+  onOrders: (orders: any[]) => void,
+  onError?: (err: Error) => void
+) {
+  const path = 'orders';
+  const q = query(
+    collection(db, 'orders'),
+    where('userId', '==', userId),
+    limit(50)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const ordersList: any[] = [];
+      snapshot.forEach((docSnap) => {
+        ordersList.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      // Sort in-memory by createdAt descending
+      ordersList.sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
+      onOrders(ordersList);
+    },
+    (error) => {
+      console.warn('Customer orders subscription note:', error);
+      if (onError) onError(error);
+    }
+  );
 }
 
 /**

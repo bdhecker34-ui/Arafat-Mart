@@ -88,6 +88,12 @@ export const DEFAULT_STORE_CONTENT: AdminContentState = {
     outsideDeliveryFee: 120,
     currencySymbol: '৳',
   },
+  social: {
+    facebook: 'https://facebook.com',
+    youtube: 'https://youtube.com',
+    instagram: 'https://instagram.com',
+    tiktok: 'https://tiktok.com',
+  },
   homepage: {
     showBanners: true,
     showTrustBar: true,

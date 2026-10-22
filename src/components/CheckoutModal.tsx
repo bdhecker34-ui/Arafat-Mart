@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { X, ShieldCheck, Truck, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ShieldCheck, Truck, ArrowLeft, CheckCircle2, User as UserIcon, LogIn } from 'lucide-react';
 import { CartItem, CustomerDetails, PaymentMethod, Order } from '../types';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshDistricts';
+import { User } from '../firebase';
+import { getUserProfileFromFirestore } from '../services/firestoreService';
 import { motion } from 'motion/react';
 
 interface CheckoutModalProps {
@@ -10,6 +12,8 @@ interface CheckoutModalProps {
   items: CartItem[];
   discount: number;
   onOrderPlaced: (order: Order) => void;
+  currentUser?: User | null;
+  onOpenAuth?: () => void;
   contactInfo?: {
     bkash: string;
     nagad: string;
@@ -23,6 +27,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   items,
   discount,
   onOrderPlaced,
+  currentUser,
+  onOpenAuth,
   contactInfo,
 }) => {
   if (!isOpen) return null;
@@ -37,6 +43,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     fullAddress: '',
     orderNote: '',
   });
+
+  // Pre-fill from current user profile if available
+  useEffect(() => {
+    if (currentUser) {
+      getUserProfileFromFirestore(currentUser.uid).then((prof) => {
+        if (prof) {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: prof.fullName || currentUser.displayName || prev.fullName,
+            phone: prof.phone || prev.phone,
+            thana: prof.thana || prev.thana,
+            fullAddress: prof.fullAddress || prev.fullAddress,
+          }));
+        } else if (currentUser.displayName) {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: currentUser.displayName || prev.fullName,
+          }));
+        }
+      });
+    }
+  }, [currentUser, isOpen]);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [bkashNumber, setBkashNumber] = useState('');
@@ -96,6 +124,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         id: orderId,
         trackingNumber,
         createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        userId: currentUser?.uid,
+        userEmail: currentUser?.email || '',
         customer: {
           ...formData,
           division: currentDivisionObj.name,
@@ -178,6 +208,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         {/* Scrollable Form Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 flex-1">
           
+          {/* User Account / Guest Notice */}
+          {currentUser ? (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  লগইন আছেন: <strong className="font-semibold">{currentUser.displayName || currentUser.email}</strong>
+                </span>
+              </div>
+              <span className="text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
+                অর্ডার একাউন্টে সেভ হবে
+              </span>
+            </div>
+          ) : onOpenAuth ? (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
+              <span>
+                ⚡ এক ক্লিকে গুগল দিয়ে লগইন করুন (ঐচ্ছিক) অথবা নিচে তথ্য দিয়ে সরাসরি অর্ডার করুন:
+              </span>
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>লগইন করুন</span>
+              </button>
+            </div>
+          ) : null}
+
           {/* Section 1: Customer Contact & Delivery Address in Bangladesh */}
           <div>
             <div className="flex items-center gap-2 mb-3">

@@ -40,7 +40,7 @@ service cloud.firestore {
       allow write: if isValidId(contentId) && isAdmin();
     }
 
-    // 2. Orders (Customers submit orders, Admin manages fulfillment)
+    // 2. Orders (Customers submit orders, Admin manages fulfillment, Customer reads their own orders)
     match /orders/{orderId} {
       // Anyone can place a new order (validated payload)
       allow create: if isValidId(orderId) &&
@@ -50,16 +50,22 @@ service cloud.firestore {
         incoming().deliveryAddress is string && incoming().deliveryAddress.size() <= 300 &&
         incoming().totalAmount is number && incoming().totalAmount >= 0;
 
-      // PII Protection: Only Admin can view, update, or cancel orders
-      allow read, update, delete: if isValidId(orderId) && isAdmin();
+      // Admin has full control; signed-in user can read their own orders
+      allow read: if isValidId(orderId) && (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid));
+      allow update, delete: if isValidId(orderId) && isAdmin();
     }
 
-    // 3. Admin Users
+    // 3. Customer User Profiles
+    match /users/{userId} {
+      allow read, write: if isValidId(userId) && (isAdmin() || (isSignedIn() && request.auth.uid == userId));
+    }
+
+    // 4. Admin Users
     match /admins/{adminId} {
       allow read, write: if isValidId(adminId) && isAdmin();
     }
 
-    // 4. Audit Logs
+    // 5. Audit Logs
     match /audit_logs/{logId} {
       allow read: if isValidId(logId) && isAdmin();
       allow create: if isValidId(logId) && isAdmin();

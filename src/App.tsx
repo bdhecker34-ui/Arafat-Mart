@@ -14,6 +14,9 @@ import { OrderSuccessModal } from './components/OrderSuccessModal';
 import { TrackOrderModal } from './components/TrackOrderModal';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { Footer } from './components/Footer';
+import { AuthModal } from './components/AuthModal';
+import { CustomerAccountModal } from './components/CustomerAccountModal';
+import { SmartBudgetModal } from './components/SmartBudgetModal';
 
 import { AdminSetup } from './admin/AdminSetup';
 import { AdminLogin } from './admin/AdminLogin';
@@ -25,7 +28,7 @@ import {
   saveStoreContentToFirestore,
   saveOrderToFirestore,
 } from './services/firestoreService';
-import { testConnection, auth, signOut } from './firebase';
+import { testConnection, auth, signOut, onAuthStateChanged, User } from './firebase';
 
 import { BANGLADESH_DIVISIONS } from './data/bangladeshDistricts';
 import { Product, ProductCategory, CartItem, Order } from './types';
@@ -41,6 +44,12 @@ import {
   MessageCircle,
   AlertTriangle,
   Lock,
+  LayoutGrid,
+  Shirt,
+  Smartphone,
+  Home,
+  Sparkles,
+  Package,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -68,6 +77,20 @@ export default function App() {
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
   const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [trackingOrderId, setTrackingOrderId] = useState<string | undefined>(undefined);
+  const [isSmartBudgetOpen, setIsSmartBudgetOpen] = useState(false);
+
+  // Customer Authentication & Account States
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Cart & Wishlist with localStorage persistence
   const [cart, setCart] = useState<CartItem[]>(() => {
@@ -386,6 +409,40 @@ export default function App() {
     setIsCheckoutOpen(true);
   };
 
+  // Smart Budget Multi-item Cart Insertion
+  const handleAddMultipleToCart = (items: { product: Product; quantity: number }[]) => {
+    setCart((prev) => {
+      let next = [...prev];
+      for (const item of items) {
+        const size = item.product.sizes ? item.product.sizes[0] : undefined;
+        const color = item.product.colors ? item.product.colors[0] : undefined;
+        const idx = next.findIndex(
+          (ci) => ci.product.id === item.product.id && ci.selectedSize === size && ci.selectedColor === color
+        );
+        if (idx > -1) {
+          next[idx] = { ...next[idx], quantity: next[idx].quantity + item.quantity };
+        } else {
+          next.push({
+            product: item.product,
+            quantity: item.quantity,
+            selectedSize: size,
+            selectedColor: color,
+          });
+        }
+      }
+      return next;
+    });
+    showToast(`স্মার্ট বাজেট কম্বো: ${items.length} টি পণ্য ব্যাগে যোগ করা হয়েছে!`);
+    setIsCartOpen(true);
+  };
+
+  // Smart Budget Instant Checkout
+  const handleInstantCheckoutWithItems = (items: { product: Product; quantity: number }[]) => {
+    handleAddMultipleToCart(items);
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
+  };
+
   // Wishlist operations
   const handleToggleWishlist = (product: Product) => {
     const exists = wishlist.some((p) => p.id === product.id);
@@ -449,9 +506,29 @@ export default function App() {
         status: order.orderStatus,
         items: order.items,
         notes: order.customer.orderNote,
+        userId: order.userId,
+        userEmail: order.userEmail,
       });
     } catch (e) {
       console.warn('Firestore order save note:', e);
+    }
+  };
+
+  // Category Icon Resolver
+  const getCategoryIcon = (categoryId: string) => {
+    switch (categoryId) {
+      case 'all':
+        return <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6" />;
+      case 'fashion':
+        return <Shirt className="w-5 h-5 sm:w-6 sm:h-6" />;
+      case 'gadgets':
+        return <Smartphone className="w-5 h-5 sm:w-6 sm:h-6" />;
+      case 'home-kitchen':
+        return <Home className="w-5 h-5 sm:w-6 sm:h-6" />;
+      case 'beauty-care':
+        return <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />;
+      default:
+        return <Package className="w-5 h-5 sm:w-6 sm:h-6" />;
     }
   };
 
@@ -459,10 +536,11 @@ export default function App() {
   const categoryTabs = useMemo(() => {
     const configured = (storeContent.categories || []).filter((c) => c.active !== false);
     return [
-      { id: 'all' as ProductCategory, label: 'All Catalog' },
+      { id: 'all' as ProductCategory, label: 'All Products', nameBn: 'সব প্রোডাক্ট' },
       ...configured.map((c) => ({
-        id: c.id,
+        id: c.id as ProductCategory,
         label: c.name,
+        nameBn: c.nameBn,
       })),
     ];
   }, [storeContent.categories]);
@@ -612,13 +690,21 @@ export default function App() {
         cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
         cartTotal={cartTotal}
         wishlistCount={wishlist.length}
+        categories={categoryTabs}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenTrackOrder={() => {
           setTrackingOrderId(undefined);
           setIsTrackOrderOpen(true);
         }}
+        onOpenSmartBudget={() => setIsSmartBudgetOpen(true)}
         onOpenAdmin={openAdminConsole}
+        currentUser={currentUser}
+        onOpenAuth={() => {
+          setAuthModalMode('login');
+          setIsAuthModalOpen(true);
+        }}
+        onOpenAccount={() => setIsAccountModalOpen(true)}
         noticeText={storeContent.notice?.text}
         noticeEnabled={storeContent.notice?.enabled}
         whatsappNumber={storeContent.contact?.whatsapp}
@@ -653,38 +739,117 @@ export default function App() {
 
       {/* Main Catalog Section */}
       <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full">
-        {/* Catalog Control Bar: Category Segmented Controls & Sorting */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-stone-200">
-          {/* Functional Category Filter Segmented Tabs */}
-          {storeContent.homepage?.showCategoryFilters !== false && (
-            <div className="flex items-center gap-1.5 p-1 bg-stone-200/70 rounded-xl overflow-x-auto no-scrollbar">
-              {categoryTabs.map((cat) => (
-                <motion.button
-                  key={cat.id}
-                  whileTap={{ scale: 0.93 }}
-                  whileHover={{ scale: 1.02 }}
+        {/* Modern Icon-Based Category Box Section */}
+        {storeContent.homepage?.showCategoryFilters !== false && (
+          <section className="mb-8" aria-label="Product Categories">
+            {/* Section Heading & Category Info */}
+            <div className="flex items-center justify-between mb-4 px-0.5">
+              <div>
+                <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 tracking-tight flex items-center gap-2">
+                  <span>পণ্য ক্যাটাগরি</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                    Categories
+                  </span>
+                </h2>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  পছন্দের ক্যাটাগরি সিলেক্ট করে দ্রুত পণ্য ব্রাউজ করুন
+                </p>
+              </div>
+
+              {activeCategory !== 'all' && (
+                <button
                   onClick={() => {
-                    setActiveCategory(cat.id as ProductCategory);
+                    setActiveCategory('all');
                     setSearchQuery('');
                   }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
-                    activeCategory === cat.id
-                      ? 'bg-stone-900 text-white shadow-xs'
-                      : 'text-stone-700 hover:text-stone-900 hover:bg-stone-300/40'
-                  }`}
+                  className="text-xs font-semibold text-amber-700 hover:text-amber-800 underline flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  {cat.label}
-                </motion.button>
-              ))}
+                  সব পণ্য দেখুন (Show All)
+                </button>
+              )}
             </div>
-          )}
 
-          {/* Sort Dropdown & Product Counter */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-stone-600">
-            <span className="font-mono tabular-nums">
-              Showing <strong>{filteredProducts.length}</strong> items
+            {/* Horizontal Single-Row Category Boxes with Smooth Horizontal Scroll */}
+            <div className="relative">
+              <div className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-1 px-0.5">
+                {categoryTabs.map((cat) => {
+                  const isSelected = activeCategory === cat.id;
+                  return (
+                    <motion.button
+                      key={cat.id}
+                      whileHover={{ y: -3, scale: 1.02 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => {
+                        setActiveCategory(cat.id as ProductCategory);
+                        setSearchQuery('');
+                      }}
+                      className={`flex-1 min-w-[115px] sm:min-w-[135px] md:min-w-[150px] p-3.5 sm:p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all cursor-pointer relative select-none ${
+                        isSelected
+                          ? 'bg-stone-900 text-white border-2 border-stone-900 shadow-lg ring-4 ring-stone-900/10'
+                          : 'bg-white hover:bg-stone-50 text-stone-800 border border-stone-200/90 shadow-xs hover:shadow-md hover:border-stone-300'
+                      }`}
+                      aria-pressed={isSelected}
+                    >
+                      {/* Active Indicator Top-Right Dot */}
+                      {isSelected && (
+                        <span className="absolute top-2 right-2 flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                        </span>
+                      )}
+
+                      {/* Icon Container */}
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2.5 transition-colors ${
+                          isSelected
+                            ? 'bg-amber-400 text-stone-950 shadow-xs'
+                            : 'bg-stone-100 text-stone-700'
+                        }`}
+                      >
+                        {getCategoryIcon(cat.id)}
+                      </div>
+
+                      {/* Original Category Name */}
+                      <span
+                        className={`text-xs sm:text-sm font-bold tracking-tight line-clamp-1 ${
+                          isSelected ? 'text-white' : 'text-stone-800'
+                        }`}
+                      >
+                        {cat.label}
+                      </span>
+
+                      {/* Subtle Bengali name subtext if available */}
+                      {cat.nameBn && (
+                        <span
+                          className={`text-[10px] sm:text-[11px] mt-0.5 line-clamp-1 ${
+                            isSelected ? 'text-stone-300' : 'text-stone-500'
+                          }`}
+                        >
+                          {cat.nameBn}
+                        </span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Product Count & Sorting Control Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-stone-200">
+          <div className="text-xs sm:text-sm text-stone-600 font-medium">
+            <span>
+              প্রদর্শিত পণ্য সংখ্যা:{' '}
+              <strong className="font-mono text-stone-900 text-sm">
+                {filteredProducts.length}
+              </strong>{' '}
+              টি
             </span>
+          </div>
 
+          {/* Sort Dropdown */}
+          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-stone-600">
             <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 shadow-xs">
               <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500" />
               <select
@@ -692,10 +857,10 @@ export default function App() {
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="bg-transparent text-xs font-medium text-stone-800 focus:outline-none cursor-pointer"
               >
-                <option value="featured">Featured Picks</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Top Customer Rated</option>
+                <option value="featured">Featured Picks (বাছাইকৃত)</option>
+                <option value="price-asc">Price: Low to High (কম থেকে বেশি দাম)</option>
+                <option value="price-desc">Price: High to Low (বেশি থেকে কম দাম)</option>
+                <option value="rating">Top Customer Rated (শীর্ষ রেটিং)</option>
               </select>
             </div>
           </div>
@@ -844,10 +1009,10 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer (with discreet Admin link at bottom) */}
       <Footer
         contactInfo={storeContent.contact}
         aboutText={storeContent.footer?.aboutText}
+        socialLinks={storeContent.social}
         onSelectCategory={(cat) => {
           setActiveCategory(cat);
           const el = document.getElementById('catalog-section');
@@ -912,7 +1077,39 @@ export default function App() {
         discount={appliedDiscount}
         contactInfo={storeContent.contact}
         onOrderPlaced={handleOrderPlaced}
+        currentUser={currentUser}
+        onOpenAuth={() => {
+          setAuthModalMode('login');
+          setIsAuthModalOpen(true);
+        }}
       />
+
+      {/* Customer Authentication Modal (Login / Sign Up) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultMode={authModalMode}
+        onSuccess={() => {
+          showToast('স্বাগতম! আপনি সফলভাবে লগইন করেছেন');
+        }}
+      />
+
+      {/* Customer Account & Order History Modal */}
+      {currentUser && (
+        <CustomerAccountModal
+          isOpen={isAccountModalOpen}
+          onClose={() => setIsAccountModalOpen(false)}
+          user={currentUser}
+          onTrackOrder={(orderId) => {
+            setIsAccountModalOpen(false);
+            setTrackingOrderId(orderId);
+            setIsTrackOrderOpen(true);
+          }}
+          onLogout={() => {
+            showToast('আপনি সফলভাবে লগআউট করেছেন');
+          }}
+        />
+      )}
 
       {/* Order Success Confirmation Modal */}
       <OrderSuccessModal
@@ -934,6 +1131,19 @@ export default function App() {
         }}
         orders={orders}
         defaultOrderId={trackingOrderId}
+      />
+
+      {/* Smart Budget Shopping Modal */}
+      <SmartBudgetModal
+        isOpen={isSmartBudgetOpen}
+        onClose={() => setIsSmartBudgetOpen(false)}
+        products={
+          storeContent.products && storeContent.products.length > 0
+            ? storeContent.products
+            : DEFAULT_STORE_CONTENT.products
+        }
+        onAddMultipleToCart={handleAddMultipleToCart}
+        onInstantCheckoutWithItems={handleInstantCheckoutWithItems}
       />
 
       {/* Floating WhatsApp Quick Contact Button (Live dynamic phone) */}

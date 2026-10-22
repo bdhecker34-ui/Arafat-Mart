@@ -66,6 +66,8 @@ export interface Order {
   id: string;
   trackingNumber: string;
   createdAt: string;
+  userId?: string;
+  userEmail?: string;
   customer: CustomerDetails;
   items: CartItem[];
   subtotal: number;
@@ -78,3 +80,17 @@ export interface Order {
   trxId?: string;
   timeline: TrackingEvent[];
 }
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  division?: string;
+  district?: string;
+  thana?: string;
+  fullAddress?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
