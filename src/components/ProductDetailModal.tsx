@@ -1,9 +1,24 @@
 import React, { useState } from 'react';
-import { X, Star, ShieldCheck, Truck, RotateCcw, Check, ShoppingBag, Zap, Heart } from 'lucide-react';
+import { 
+  X, 
+  Star, 
+  ShieldCheck, 
+  Truck, 
+  RotateCcw, 
+  Check, 
+  ShoppingBag, 
+  Zap, 
+  Heart,
+  Share2,
+  Copy,
+  MessageCircle,
+  Sparkles
+} from 'lucide-react';
 import { Product } from '../types';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshDistricts';
 import { MOCK_REVIEWS } from '../data/products';
 import { motion } from 'motion/react';
+import { getProductShareUrl } from './ProductShareModal';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -12,6 +27,9 @@ interface ProductDetailModalProps {
   onInstantBuy: (product: Product, quantity: number, selectedSize?: string, selectedColor?: string) => void;
   isWishlisted: boolean;
   onToggleWishlist: (product: Product) => void;
+  onOpenShare?: (product: Product) => void;
+  language?: 'bn' | 'en';
+  onToast?: (message: string) => void;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -21,6 +39,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onInstantBuy,
   isWishlisted,
   onToggleWishlist,
+  onOpenShare,
+  language = 'bn',
+  onToast,
 }) => {
   if (!product) return null;
 
@@ -33,30 +54,84 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   );
   const [selectedDivision, setSelectedDivision] = useState('dhaka');
   const [activeTab, setActiveTab] = useState<'details' | 'specs' | 'reviews'>('details');
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const primaryTitle = language === 'bn' ? (product.titleBn || product.title) : product.title;
+  const secondaryTitle = language === 'bn' ? (product.titleBn ? product.title : null) : product.titleBn;
 
   const currentDivision = BANGLADESH_DIVISIONS.find((d) => d.id === selectedDivision) || BANGLADESH_DIVISIONS[0];
   const discountPercent = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
+  const shareUrl = getProductShareUrl(product.id);
+
+  const handleCopyLink = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedLink(true);
+      if (onToast) {
+        onToast(language === 'bn' ? 'প্রোডাক্টের লিংক কপি করা হয়েছে!' : 'Product link copied to clipboard!');
+      }
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (err) {
+      console.warn('Copy error:', err);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = language === 'bn'
+      ? `🛍️ Easy Mart-এ দেখুন: ${primaryTitle}\n💰 দাম: ৳${product.price.toLocaleString()} টাকা\n🚚 সমগ্র বাংলাদেশে ক্যাশ অন ডেলিভারি!\n👉 বিস্তারিত ও অর্ডার লিংক: ${shareUrl}`
+      : `🛍️ Check out this deal on Easy Mart: ${primaryTitle}\n💰 Price: ৳${product.price.toLocaleString()}\n🚚 Nationwide Cash on Delivery!\n👉 Order Link: ${shareUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 md:p-6 animate-in fade-in duration-200">
-      <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-stone-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="relative bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 w-full max-w-4xl rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden my-auto max-h-[92vh] flex flex-col transition-colors duration-200">
         
         {/* Modal Top Bar */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-b border-stone-200 bg-stone-50/50">
-          <div className="flex items-center gap-2 text-xs text-stone-500">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-stone-200 dark:border-stone-800 bg-stone-50/80 dark:bg-stone-850/80">
+          <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 truncate mr-2">
             <span className="capitalize">{product.category.replace('-', ' & ')}</span>
             <span aria-hidden="true">/</span>
-            <span className="text-stone-800 font-medium truncate max-w-xs">{product.title}</span>
+            <span className="text-stone-800 dark:text-stone-200 font-medium truncate max-w-xs">{primaryTitle}</span>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close product view"
-            className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Top Bar Share Trigger Button */}
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => onOpenShare ? onOpenShare(product) : handleCopyLink()}
+              title={language === 'bn' ? 'প্রোডাক্ট লিংক শেয়ার করুন' : 'Share Product Link'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+            >
+              <Share2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+              <span className="hidden sm:inline">
+                {language === 'bn' ? 'শেয়ার করুন' : 'Share'}
+              </span>
+            </motion.button>
+
+            <button
+              onClick={onClose}
+              aria-label="Close product view"
+              className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/50 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Scrollable Body */}
@@ -220,61 +295,119 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.94 }}
                     onClick={() => onAddToCart(product, quantity, selectedSize, selectedColor)}
-                    className="flex-1 py-3 px-4 bg-stone-100 hover:bg-stone-200 text-stone-900 text-xs font-bold rounded-lg border border-stone-300 flex items-center justify-center gap-2 transition-colors"
+                    className="flex-1 py-3 px-4 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-900 dark:text-stone-100 text-xs font-bold rounded-lg border border-stone-300 dark:border-stone-700 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     <ShoppingBag className="w-4 h-4" />
-                    <span>Add to Bag</span>
+                    <span>{language === 'bn' ? 'ব্যাগে যোগ করুন' : 'Add to Bag'}</span>
                   </motion.button>
 
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.94 }}
                     onClick={() => onInstantBuy(product, quantity, selectedSize, selectedColor)}
-                    className="flex-1 py-3 px-4 bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                    className="flex-1 py-3 px-4 bg-amber-800 hover:bg-amber-900 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-stone-950 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
                   >
                     <Zap className="w-4 h-4 fill-current" />
-                    <span>Cash on Delivery Order</span>
+                    <span>{language === 'bn' ? 'ক্যাশ অন ডেলিভারি অর্ডার' : 'Cash on Delivery Order'}</span>
                   </motion.button>
 
-                  <motion.button
-                    whileTap={{ scale: 0.8 }}
-                    onClick={() => onToggleWishlist(product)}
-                    className={`p-3 rounded-lg border transition-colors ${
-                      isWishlisted
-                        ? 'bg-rose-50 text-rose-600 border-rose-300'
-                        : 'border-stone-300 text-stone-600 hover:bg-stone-100'
-                    }`}
-                    aria-label="Add to wishlist"
-                  >
-                    <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
-                  </motion.button>
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.8 }}
+                      onClick={() => onToggleWishlist(product)}
+                      className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                        isWishlisted
+                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-800'
+                          : 'border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                      }`}
+                      aria-label="Add to wishlist"
+                      title={language === 'bn' ? 'পছন্দের তালিকায় রাখুন' : 'Save to wishlist'}
+                    >
+                      <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+                    </motion.button>
+
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => onOpenShare ? onOpenShare(product) : handleCopyLink()}
+                      className="p-3 rounded-lg border border-stone-300 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
+                      aria-label="Share product"
+                      title={language === 'bn' ? 'প্রোডাক্ট লিংক শেয়ার করুন' : 'Share product link'}
+                    >
+                      <Share2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Quick Share Strip */}
+                <div className="mt-4 p-3 bg-stone-100/90 dark:bg-stone-800/90 rounded-xl border border-stone-200 dark:border-stone-700 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-stone-700 dark:text-stone-300">
+                    <Share2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>{language === 'bn' ? 'অন্যকে লিঙ্ক পাঠান:' : 'Share Link:'}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* 1-Click Copy Link */}
+                    <button
+                      onClick={handleCopyLink}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        copiedLink
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-850 border border-stone-200 dark:border-stone-700'
+                      }`}
+                    >
+                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />}
+                      <span>{copiedLink ? (language === 'bn' ? 'কপি হয়েছে!' : 'Copied!') : (language === 'bn' ? 'লিংক কপি' : 'Copy Link')}</span>
+                    </button>
+
+                    {/* Quick WhatsApp Share */}
+                    <button
+                      onClick={handleShareWhatsApp}
+                      className="px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                      title="Share to WhatsApp"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                      <span>WhatsApp</span>
+                    </button>
+
+                    {/* More Share Options */}
+                    {onOpenShare && (
+                      <button
+                        onClick={() => onOpenShare(product)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-850 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        title={language === 'bn' ? 'আরও শেয়ার অপশন' : 'More share options'}
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="hidden sm:inline">{language === 'bn' ? 'আরও' : 'More'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Nationwide Delivery Calculator Box */}
-                <div className="mt-5 p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+                <div className="mt-5 p-3.5 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-200 dark:border-stone-700 text-xs">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-stone-800 flex items-center gap-1.5">
-                      <Truck className="w-3.5 h-3.5 text-amber-700" />
-                      Check Shipping to Your Division:
+                    <span className="font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
+                      <Truck className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                      <span>{language === 'bn' ? 'আপনার বিভাগে ডেলিভারি চেক করুন:' : 'Check Shipping to Your Division:'}</span>
                     </span>
                     <select
                       value={selectedDivision}
                       onChange={(e) => setSelectedDivision(e.target.value)}
-                      className="bg-white border border-stone-300 rounded px-2 py-0.5 text-xs text-stone-800 focus:outline-none"
+                      className="bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded px-2 py-0.5 text-xs text-stone-800 dark:text-stone-200 focus:outline-none cursor-pointer"
                     >
                       {BANGLADESH_DIVISIONS.map((div) => (
-                        <option key={div.id} value={div.id}>
-                          {div.name}
+                        <option key={div.id} value={div.id} className="dark:bg-stone-900 dark:text-stone-100">
+                          {language === 'bn' ? div.nameBn : div.name}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center justify-between text-stone-600">
+                  <div className="flex items-center justify-between text-stone-600 dark:text-stone-400">
                     <span>
-                      Delivery Charge: <strong>৳{currentDivision.deliveryFee}</strong>
+                      {language === 'bn' ? 'ডেলিভারি চার্জ:' : 'Delivery Charge:'} <strong className="text-stone-900 dark:text-stone-100">৳{currentDivision.deliveryFee}</strong>
                     </span>
                     <span>
-                      Estimated: <strong>{currentDivision.estimatedDelivery}</strong>
+                      {language === 'bn' ? 'আনুমানিক সময়:' : 'Estimated:'} <strong className="text-stone-900 dark:text-stone-100">{currentDivision.estimatedDelivery}</strong>
                     </span>
                   </div>
                 </div>

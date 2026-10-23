@@ -28,16 +28,23 @@ import {
   Sliders,
   Upload,
   Copy,
+  HeartHandshake,
+  MessageCircle,
+  DollarSign,
+  Send,
 } from 'lucide-react';
-import { Product, ProductCategory, Order, OrderStatus } from '../types';
+import { Product, ProductCategory, Order, OrderStatus, CustomerWish, WishStatus } from '../types';
 import { adminApi, AdminContentState, BannerItem, AuditLogEntry, MediaItem } from '../services/adminApi';
 
 interface AdminDashboardProps {
   adminEmail: string;
   content: AdminContentState;
   orders: Order[];
+  customerWishes?: CustomerWish[];
   onUpdateContent: (newContent: AdminContentState) => void;
   onUpdateOrders: (newOrders: Order[]) => void;
+  onUpdateWishStatus?: (wishId: string, status: WishStatus, adminNotes?: string) => Promise<boolean>;
+  onDeleteWish?: (wishId: string) => Promise<boolean>;
   onLogout: () => void;
   onViewStore: () => void;
 }
@@ -52,6 +59,7 @@ type TabType =
   | 'contact'
   | 'coupons'
   | 'orders'
+  | 'customer-wishes'
   | 'media'
   | 'settings'
   | 'security'
@@ -61,8 +69,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   adminEmail,
   content,
   orders,
+  customerWishes = [],
   onUpdateContent,
   onUpdateOrders,
+  onUpdateWishStatus,
+  onDeleteWish,
   onLogout,
   onViewStore,
 }) => {
@@ -120,6 +131,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  // Customer Wishes filter & notes state
+  const [wishStatusFilter, setWishStatusFilter] = useState<string>('all');
+  const [wishSearch, setWishSearch] = useState('');
+  const [updatingWishId, setUpdatingWishId] = useState<string | null>(null);
+  const [editingWishNoteId, setEditingWishNoteId] = useState<string | null>(null);
+  const [wishAdminNoteInput, setWishAdminNoteInput] = useState('');
+
+  const pendingWishesCount = customerWishes.filter((w) => w.status === 'pending').length;
 
   const handleSaveAll = async () => {
     setIsSaving(true);
@@ -303,11 +323,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               { id: 'contact', label: 'Contact & Social Links', icon: PhoneCall },
               { id: 'coupons', label: 'Vouchers & Coupons', icon: Tag },
               { id: 'orders', label: 'Orders & 64 Districts', icon: Truck },
+              { id: 'customer-wishes', label: 'Customer Wishes', icon: HeartHandshake, badge: pendingWishesCount },
               { id: 'media', label: 'Media & Uploads', icon: Images },
               { id: 'settings', label: 'Global Settings', icon: Settings },
               { id: 'security', label: 'Security & Audit Logs', icon: ShieldCheck },
               { id: 'android', label: 'Android App & APK', icon: Smartphone },
-            ].map((tab) => {
+            ].map((tab: any) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -325,7 +346,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
-                  <span>{tab.label}</span>
+                  <span className="flex-1 text-left">{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -1684,6 +1710,337 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </pre>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ================= 14. CUSTOMER WISHES TAB ================= */}
+          {activeTab === 'customer-wishes' && (
+            <div className="space-y-6">
+              {/* Header Card */}
+              <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                      <HeartHandshake className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <span>কাস্টমার উইশ ও পণ্যের আবদার (Customer Wishes & Requests)</span>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white">
+                          মোট: {customerWishes.length} টি
+                        </span>
+                      </h3>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        ওয়েবসাইট ভিজিটর ও ক্রেতাদের পাঠানো উইশ ও রিকোয়েস্ট। এখান থেকে সরাসরি কাস্টমারের সাথে যোগাযোগ করুন ও স্ট্যাটাস আপডেট করুন।
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-stone-400">
+                    অমীমাংসিত (Pending): <strong className="text-rose-400 font-mono text-sm">{pendingWishesCount}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter and Search Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-900 border border-stone-800 p-4 rounded-xl">
+                {/* Status Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs">
+                  {[
+                    { id: 'all', label: 'সব উইশ', count: customerWishes.length },
+                    { id: 'pending', label: 'পেন্ডিং (নতুন)', count: customerWishes.filter((w) => w.status === 'pending').length },
+                    { id: 'reviewing', label: 'পর্যালোচনাধীন', count: customerWishes.filter((w) => w.status === 'reviewing').length },
+                    { id: 'fulfilled', label: 'স্টক সম্পন্ন', count: customerWishes.filter((w) => w.status === 'fulfilled').length },
+                    { id: 'cancelled', label: 'বাতিল', count: customerWishes.filter((w) => w.status === 'cancelled').length },
+                  ].map((filterTab) => (
+                    <button
+                      key={filterTab.id}
+                      onClick={() => setWishStatusFilter(filterTab.id)}
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                        wishStatusFilter === filterTab.id
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-stone-850 text-stone-400 hover:text-white hover:bg-stone-800'
+                      }`}
+                    >
+                      <span>{filterTab.label}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono">
+                        {filterTab.count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Search Box */}
+                <div className="relative min-w-[220px]">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    value={wishSearch}
+                    onChange={(e) => setWishSearch(e.target.value)}
+                    placeholder="পণ্য বা কাস্টমারের নাম/নম্বর..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-stone-850 border border-stone-700 rounded-lg text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500"
+                  />
+                  {wishSearch && (
+                    <button
+                      onClick={() => setWishSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Wishes List */}
+              {(() => {
+                const filteredWishes = customerWishes.filter((wish) => {
+                  const matchesStatus = wishStatusFilter === 'all' || wish.status === wishStatusFilter;
+                  const q = wishSearch.toLowerCase().trim();
+                  const matchesSearch =
+                    !q ||
+                    wish.title.toLowerCase().includes(q) ||
+                    wish.customerName.toLowerCase().includes(q) ||
+                    wish.customerPhone.includes(q) ||
+                    (wish.description && wish.description.toLowerCase().includes(q));
+                  return matchesStatus && matchesSearch;
+                });
+
+                if (filteredWishes.length === 0) {
+                  return (
+                    <div className="p-12 text-center bg-stone-900 border border-stone-800 rounded-2xl space-y-3">
+                      <div className="w-12 h-12 rounded-full bg-stone-800 text-stone-500 mx-auto flex items-center justify-center">
+                        <HeartHandshake className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-stone-300">কোনো উইশ পাওয়া যায়নি</h4>
+                      <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                        {wishSearch || wishStatusFilter !== 'all'
+                          ? 'আপনার সার্চ বা ফিল্টারের সাথে মিলে এমন কোনো কাস্টমার উইশ পাওয়া যায়নি।'
+                          : 'এখনও কোনো কাস্টমার উইশ জমা পড়েনি। কাস্টমার ড্রপডাউন মেনু থেকে উইশ জমা দিলে তা সাথে সাথে এখানে দেখা যাবে।'}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredWishes.map((wish) => {
+                      const statusBadge = (() => {
+                        switch (wish.status) {
+                          case 'pending':
+                            return { label: 'নতুন (Pending)', color: 'bg-rose-950/70 text-rose-400 border-rose-800' };
+                          case 'reviewing':
+                            return { label: 'পর্যালোচনাধীন (Reviewing)', color: 'bg-amber-950/70 text-amber-400 border-amber-800' };
+                          case 'fulfilled':
+                            return { label: 'স্টক সম্পন্ন (Fulfilled)', color: 'bg-emerald-950/70 text-emerald-400 border-emerald-800' };
+                          case 'cancelled':
+                            return { label: 'বাতিল (Cancelled)', color: 'bg-stone-800 text-stone-400 border-stone-700' };
+                          default:
+                            return { label: wish.status, color: 'bg-stone-800 text-stone-400 border-stone-700' };
+                        }
+                      })();
+
+                      const cleanPhone = wish.customerPhone.replace(/\D/g, '');
+                      const formattedDate = new Date(wish.createdAt).toLocaleDateString('bn-BD', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+
+                      const whatsappText = encodeURIComponent(
+                        `আসসালামু আলাইকুম ${wish.customerName}! আরাফাত মার্টে আপনি "${wish.title}" পণ্যের জন্য একটি উইশ জানিয়েছিলেন। আমরা আপনাকে এই বিষয়ে আপডেট জানাতে এসেছি:`
+                      );
+
+                      return (
+                        <div
+                          key={wish.id}
+                          className="bg-stone-900 border border-stone-800 hover:border-stone-700 rounded-2xl p-5 space-y-4 transition-all shadow-sm"
+                        >
+                          {/* Header: Title & Status */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-stone-800 text-stone-400">
+                                  {wish.category || 'General'}
+                                </span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
+                                  {statusBadge.label}
+                                </span>
+                              </div>
+                              <h4 className="text-sm font-extrabold text-white mt-1.5 leading-snug">
+                                {wish.title}
+                              </h4>
+                            </div>
+
+                            {/* Delete Wish Button */}
+                            {onDeleteWish && (
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`আপনি কি "${wish.title}" উইশটি মুছে ফেলতে চান?`)) {
+                                    await onDeleteWish(wish.id);
+                                  }
+                                }}
+                                title="মুছে ফেলুন"
+                                className="p-1.5 text-stone-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Budget & Target */}
+                          {wish.expectedPrice && (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
+                              <span>প্রত্যাশিত বাজেট:</span>
+                              <strong className="font-mono text-white">{wish.expectedPrice}</strong>
+                            </div>
+                          )}
+
+                          {/* Description */}
+                          <div className="bg-stone-950/70 border border-stone-850 rounded-xl p-3 text-xs text-stone-300 leading-relaxed">
+                            <span className="text-[10px] text-stone-500 font-semibold block uppercase mb-1">
+                              গ্রাহকের দেওয়া বিবরণ:
+                            </span>
+                            {wish.description}
+                          </div>
+
+                          {/* Reference URL */}
+                          {wish.referenceUrl && (
+                            <div className="text-xs">
+                              <a
+                                href={wish.referenceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 text-amber-400 hover:underline break-all"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                                <span>রেফারেন্স লিংক দেখুন</span>
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Customer Details Box & Direct Contact Buttons */}
+                          <div className="pt-2 border-t border-stone-800 space-y-2.5">
+                            <div className="flex items-center justify-between text-xs">
+                              <div>
+                                <span className="text-stone-400">কাস্টমার: </span>
+                                <strong className="text-white font-semibold">{wish.customerName}</strong>
+                              </div>
+                              <span className="text-[11px] text-stone-500">{formattedDate}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Direct WhatsApp Message Button */}
+                              <a
+                                href={`https://wa.me/${cleanPhone}?text=${whatsappText}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>WhatsApp রিপ্লাই</span>
+                              </a>
+
+                              {/* Direct Call Button */}
+                              <a
+                                href={`tel:${wish.customerPhone}`}
+                                className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs transition-colors cursor-pointer border border-stone-700"
+                              >
+                                <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
+                                <span>{wish.customerPhone}</span>
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Status Updater & Admin Internal Notes */}
+                          <div className="pt-2 border-t border-stone-800/80 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] text-stone-400 font-medium">স্ট্যাটাস পরিবর্তন:</span>
+                              <select
+                                value={wish.status}
+                                disabled={updatingWishId === wish.id}
+                                onChange={async (e) => {
+                                  const newStatus = e.target.value as WishStatus;
+                                  if (onUpdateWishStatus) {
+                                    setUpdatingWishId(wish.id);
+                                    await onUpdateWishStatus(wish.id, newStatus, wish.adminNotes);
+                                    setUpdatingWishId(null);
+                                  }
+                                }}
+                                className="bg-stone-800 border border-stone-700 text-xs text-white rounded-lg px-2.5 py-1 focus:outline-none focus:border-amber-500 cursor-pointer disabled:opacity-50"
+                              >
+                                <option value="pending">পেন্ডিং (Pending)</option>
+                                <option value="reviewing">পর্যালোচনাধীন (Reviewing)</option>
+                                <option value="fulfilled">স্টক সম্পন্ন (Fulfilled)</option>
+                                <option value="cancelled">বাতিল (Cancelled)</option>
+                              </select>
+                            </div>
+
+                            {/* Admin Internal Note */}
+                            {editingWishNoteId === wish.id ? (
+                              <div className="space-y-1.5 pt-1">
+                                <textarea
+                                  rows={2}
+                                  value={wishAdminNoteInput}
+                                  onChange={(e) => setWishAdminNoteInput(e.target.value)}
+                                  placeholder="অ্যাডমিন ইন্টারনাল নোট (যেমন: চকবাজার থেকে কেনা হবে / দাম ৮৫০ টাকা)..."
+                                  className="w-full p-2 bg-stone-950 border border-stone-700 rounded-lg text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500 resize-none"
+                                />
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => setEditingWishNoteId(null)}
+                                    className="px-2.5 py-1 text-xs text-stone-400 hover:text-white"
+                                  >
+                                    বাতিল
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (onUpdateWishStatus) {
+                                        setUpdatingWishId(wish.id);
+                                        await onUpdateWishStatus(wish.id, wish.status, wishAdminNoteInput.trim());
+                                        setUpdatingWishId(null);
+                                        setEditingWishNoteId(null);
+                                      }
+                                    }}
+                                    className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg transition-colors"
+                                  >
+                                    নোট সেভ করুন
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between text-[11px] text-stone-400 bg-stone-950/40 p-2 rounded-lg border border-stone-850">
+                                <span className="truncate">
+                                  {wish.adminNotes ? (
+                                    <span>
+                                      <strong className="text-amber-400">নোট: </strong>
+                                      {wish.adminNotes}
+                                    </span>
+                                  ) : (
+                                    <span className="italic text-stone-500">কোনো ইন্টারনাল নোট নেই</span>
+                                  )}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingWishNoteId(wish.id);
+                                    setWishAdminNoteInput(wish.adminNotes || '');
+                                  }}
+                                  className="text-amber-400 hover:underline shrink-0 ml-2 font-semibold"
+                                >
+                                  {wish.adminNotes ? 'নোট এডিট' : '+ নোট লিখুন'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

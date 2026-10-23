@@ -14,7 +14,13 @@ import {
   Smartphone,
   Home,
   Sparkles,
-  Package
+  Package,
+  Sun,
+  Moon,
+  Globe,
+  HeartHandshake,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { ProductCategory } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -34,6 +40,7 @@ interface HeaderProps {
   onOpenWishlist: () => void;
   onOpenTrackOrder: () => void;
   onOpenSmartBudget?: () => void;
+  onOpenCustomerWishModal?: () => void;
   onOpenAdmin?: () => void;
   currentUser?: { displayName?: string | null; email?: string | null; uid?: string } | null;
   onOpenAuth: () => void;
@@ -46,6 +53,10 @@ interface HeaderProps {
   noticeEnabled?: boolean;
   whatsappNumber?: string;
   storeName?: string;
+  language?: 'bn' | 'en';
+  onToggleLanguage?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -57,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenWishlist,
   onOpenTrackOrder,
   onOpenSmartBudget,
+  onOpenCustomerWishModal,
   onOpenAdmin,
   currentUser,
   onOpenAuth,
@@ -69,6 +81,10 @@ export const Header: React.FC<HeaderProps> = ({
   noticeEnabled = true,
   whatsappNumber = '01410556747',
   storeName = 'Easy Mart',
+  language = 'bn',
+  onToggleLanguage,
+  theme = 'light',
+  onToggleTheme,
 }) => {
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -144,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
   const bannerText = noticeText || 'Cash on Delivery Across All 64 Districts in Bangladesh · Free Nationwide Delivery on orders over ৳1,999';
 
   return (
-    <header className="sticky top-0 z-40 bg-[#f7f3ea]/95 backdrop-blur-md border-b border-stone-200">
+    <header className="sticky top-0 z-40 bg-[#f7f3ea]/95 dark:bg-stone-950/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-colors duration-200">
       {/* Dismissible Top Notification Banner */}
       {showTopBanner && noticeEnabled && (
         <div className="bg-stone-900 text-stone-200 text-xs px-4 py-2 flex items-center justify-between">
@@ -187,11 +203,11 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle navigation menu"
                 aria-expanded={isMenuOpen}
-                title="মেনু ও ক্যাটাগরি"
+                title={language === 'bn' ? 'মেনু ও সেটিংস' : 'Menu & Settings'}
                 className={`flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-xl transition-all border cursor-pointer ${
                   isMenuOpen
-                    ? 'bg-stone-900 text-white border-stone-900 shadow-md ring-2 ring-stone-900/20'
-                    : 'bg-white hover:bg-stone-100 text-stone-800 border-stone-300 shadow-xs'
+                    ? 'bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 border-stone-900 dark:border-amber-500 shadow-md ring-2 ring-stone-900/20'
+                    : 'bg-white dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-100 border-stone-300 dark:border-stone-700 shadow-xs'
                 }`}
               >
                 {isMenuOpen ? (
@@ -200,7 +216,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <Menu className="w-5 h-5 text-current transition-transform duration-200" />
                 )}
                 <span className="hidden sm:inline text-xs font-bold tracking-tight">
-                  মেনু
+                  {language === 'bn' ? 'মেনু' : 'Menu'}
                 </span>
               </motion.button>
 
@@ -212,10 +228,10 @@ export const Header: React.FC<HeaderProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.96 }}
                     transition={{ duration: 0.16, ease: 'easeOut' }}
-                    className="absolute top-full left-0 mt-2.5 w-[310px] sm:w-[350px] bg-white rounded-2xl shadow-2xl border border-stone-200 z-50 overflow-hidden divide-y divide-stone-100"
+                    className="absolute top-full left-0 mt-2.5 w-[310px] sm:w-[350px] bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-800 z-50 overflow-hidden divide-y divide-stone-100 dark:divide-stone-800"
                   >
                     {/* Dropdown Header */}
-                    <div className="p-3.5 bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 text-white flex items-center justify-between">
+                    <div className="p-3.5 bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 dark:from-black dark:to-stone-900 text-white flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <img
                           src="./assets/images/easy_mart_logo.png"
@@ -224,10 +240,12 @@ export const Header: React.FC<HeaderProps> = ({
                         />
                         <div>
                           <h4 className="text-xs font-bold leading-tight flex items-center gap-1.5">
-                            <span>Easy Mart মেনু</span>
+                            <span>{language === 'bn' ? 'Easy Mart মেনু' : 'Easy Mart Menu'}</span>
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                           </h4>
-                          <p className="text-[10px] text-amber-300">সবকিছু, এক ঠিকানায়।</p>
+                          <p className="text-[10px] text-amber-300">
+                            {language === 'bn' ? 'সবকিছু, এক ঠিকানায়।' : 'Everything in one place.'}
+                          </p>
                         </div>
                       </div>
                       <button
@@ -240,10 +258,12 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
 
                     {/* Dynamic Categories List matching Product Section */}
-                    <div className="p-2 space-y-1 max-h-[270px] overflow-y-auto">
-                      <div className="px-2.5 py-1 text-[11px] font-bold text-stone-500 uppercase tracking-wider flex items-center justify-between">
-                        <span>ক্যাটাগরি সমূহ</span>
-                        <span className="text-[10px] text-stone-400 font-normal">পণ্য ব্রাউজ করুন</span>
+                    <div className="p-2 space-y-1 max-h-[260px] overflow-y-auto">
+                      <div className="px-2.5 py-1 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>{language === 'bn' ? 'ক্যাটাগরি সমূহ' : 'Categories'}</span>
+                        <span className="text-[10px] text-stone-400 dark:text-stone-500 font-normal">
+                          {language === 'bn' ? 'পণ্য ব্রাউজ করুন' : 'Browse Products'}
+                        </span>
                       </div>
                       {activeCategoriesList.map((cat) => {
                         const isActive = activeCategory === cat.id;
@@ -290,7 +310,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                     {/* Featured Smart Budget Shopping Option */}
                     {onOpenSmartBudget && (
-                      <div className="p-2 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border-t border-b border-amber-200/60">
+                      <div className="p-2 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border-t border-b border-amber-200/60 dark:border-amber-900/40">
                         <button
                           onClick={() => {
                             setIsMenuOpen(false);
@@ -306,15 +326,48 @@ export const Header: React.FC<HeaderProps> = ({
                               <div className="flex items-center gap-1.5">
                                 <span className="font-extrabold text-xs text-white">Smart Budget Shopping</span>
                                 <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-stone-950 uppercase tracking-wider">
-                                  নতুন
+                                  {language === 'bn' ? 'নতুন' : 'NEW'}
                                 </span>
                               </div>
                               <div className="text-[10px] text-amber-300 font-medium">
-                                বাজেট দিন, অটো পণ্য কম্বো নিন
+                                {language === 'bn' ? 'বাজেট দিন, অটো পণ্য কম্বো নিন' : 'Set budget, get auto product bundles'}
                               </div>
                             </div>
                           </div>
                           <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Share Customer Wish / Product Request Option */}
+                    {onOpenCustomerWishModal && (
+                      <div className="p-2 bg-gradient-to-r from-rose-500/10 via-pink-400/5 to-transparent border-b border-rose-200/60 dark:border-rose-900/40">
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onOpenCustomerWishModal();
+                          }}
+                          className="w-full flex items-center justify-between p-2.5 rounded-xl text-left bg-gradient-to-r from-stone-900 to-stone-850 hover:from-black hover:to-stone-900 text-white shadow-xs transition-all cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center font-black shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                              <HeartHandshake className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-extrabold text-xs text-white">
+                                  {language === 'bn' ? 'উইশ বা পণ্যের আবদার জানান' : 'Share Your Wish / Request'}
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white uppercase tracking-wider">
+                                  {language === 'bn' ? 'অনুরোধ' : 'Wish'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-rose-300 font-medium">
+                                {language === 'bn' ? 'কাঙ্ক্ষিত পণ্যের আবদার সরাসরি অ্যাডমিনকে পাঠান' : 'Request any product you want us to stock'}
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
                         </button>
                       </div>
                     )}
@@ -351,18 +404,20 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsMenuOpen(false);
                           onOpenWishlist();
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 hover:bg-white hover:shadow-xs transition-all border border-transparent hover:border-stone-200 cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xs transition-all border border-transparent hover:border-stone-200 dark:hover:border-stone-700 cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="p-1.5 rounded-lg bg-pink-100 text-pink-700">
+                          <div className="p-1.5 rounded-lg bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-400">
                             <Heart className="w-4 h-4" />
                           </div>
                           <div>
-                            <div className="font-bold">পছন্দের তালিকা</div>
-                            <div className="text-[10px] text-stone-500">উইশলিস্টে সেভ করা আইটেম</div>
+                            <div className="font-bold">{language === 'bn' ? 'পছন্দের তালিকা' : 'Wishlist'}</div>
+                            <div className="text-[10px] text-stone-500 dark:text-stone-400">
+                              {language === 'bn' ? 'উইশলিস্টে সেভ করা আইটেম' : 'Saved wishlist items'}
+                            </div>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-400">
                           {wishlistCount}
                         </span>
                       </button>
@@ -373,21 +428,21 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsMenuOpen(false);
                           onOpenCart();
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 hover:bg-white hover:shadow-xs transition-all border border-transparent hover:border-stone-200 cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xs transition-all border border-transparent hover:border-stone-200 dark:hover:border-stone-700 cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
+                          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
                             <ShoppingBag className="w-4 h-4" />
                           </div>
                           <div>
-                            <div className="font-bold">শপিং ব্যাগ</div>
-                            <div className="text-[10px] text-stone-500">
-                              {cartTotal > 0 ? `৳${cartTotal.toLocaleString()}` : 'ব্যাগ খালি'}
+                            <div className="font-bold">{language === 'bn' ? 'শপিং ব্যাগ' : 'Shopping Bag'}</div>
+                            <div className="text-[10px] text-stone-500 dark:text-stone-400">
+                              {cartTotal > 0 ? `৳${cartTotal.toLocaleString()}` : (language === 'bn' ? 'ব্যাগ খালি' : 'Empty')}
                             </div>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                          {cartCount} টি
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                          {cartCount} {language === 'bn' ? 'টি' : 'items'}
                         </span>
                       </button>
 
@@ -401,18 +456,18 @@ export const Header: React.FC<HeaderProps> = ({
                             onOpenAuth();
                           }
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 hover:bg-white hover:shadow-xs transition-all border border-transparent hover:border-stone-200 cursor-pointer"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xs transition-all border border-transparent hover:border-stone-200 dark:hover:border-stone-700 cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-700">
+                          <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400">
                             <UserIcon className="w-4 h-4" />
                           </div>
                           <div>
                             <div className="font-bold">
-                              {currentUser ? (currentUser.displayName || 'আমার একাউন্ট') : 'কাস্টমার লগইন / সাইন আপ'}
+                              {currentUser ? (currentUser.displayName || (language === 'bn' ? 'আমার একাউন্ট' : 'My Account')) : (language === 'bn' ? 'কাস্টমার লগইন / সাইন আপ' : 'Customer Login / Sign Up')}
                             </div>
-                            <div className="text-[10px] text-stone-500">
-                              {currentUser ? 'ঠিকানা ও প্রোফাইল' : 'নতুন একাউন্ট খুলুন'}
+                            <div className="text-[10px] text-stone-500 dark:text-stone-400">
+                              {currentUser ? (language === 'bn' ? 'ঠিকানা ও প্রোফাইল' : 'Profile & Orders') : (language === 'bn' ? 'নতুন একাউন্ট খুলুন' : 'Create new account')}
                             </div>
                           </div>
                         </div>
@@ -420,19 +475,86 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     </div>
 
+                    {/* Language & Dark/Light Mode Preferences Strip */}
+                    <div className="p-3 bg-stone-100 dark:bg-stone-850 border-t border-stone-200 dark:border-stone-800 space-y-2.5">
+                      <div className="text-[11px] font-bold text-stone-600 dark:text-stone-300 uppercase tracking-wider flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>{language === 'bn' ? 'ভাষা ও ডিসপ্লে থিম' : 'Language & Display Theme'}</span>
+                        </span>
+                        <span className="text-[10px] text-stone-400 dark:text-stone-500 font-normal">
+                          {language === 'bn' ? 'সেটিংস' : 'Settings'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Language Switch: বাংলা / English */}
+                        <div className="flex items-center p-0.5 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 shadow-2xs">
+                          <button
+                            onClick={() => onToggleLanguage && language !== 'bn' && onToggleLanguage()}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              language === 'bn'
+                                ? 'bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 shadow-xs'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+                            }`}
+                          >
+                            বাংলা
+                          </button>
+                          <button
+                            onClick={() => onToggleLanguage && language !== 'en' && onToggleLanguage()}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              language === 'en'
+                                ? 'bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 shadow-xs'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+                            }`}
+                          >
+                            English
+                          </button>
+                        </div>
+
+                        {/* Theme Switch: Light / Dark */}
+                        <div className="flex items-center p-0.5 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-700 shadow-2xs">
+                          <button
+                            onClick={() => onToggleTheme && theme !== 'light' && onToggleTheme()}
+                            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              theme === 'light'
+                                ? 'bg-stone-900 text-white shadow-xs'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+                            }`}
+                            title={language === 'bn' ? 'লাইট মোড' : 'Light Mode'}
+                          >
+                            <Sun className="w-3.5 h-3.5 text-amber-500" />
+                            <span>Light</span>
+                          </button>
+                          <button
+                            onClick={() => onToggleTheme && theme !== 'dark' && onToggleTheme()}
+                            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              theme === 'dark'
+                                ? 'bg-amber-500 text-stone-950 shadow-xs font-extrabold'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+                            }`}
+                            title={language === 'bn' ? 'ডার্ক মোড' : 'Dark Mode'}
+                          >
+                            <Moon className="w-3.5 h-3.5 text-indigo-400 dark:text-stone-950" />
+                            <span>Dark</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Dropdown Footer Hotline & Delivery note */}
-                    <div className="p-3 bg-stone-100 text-xs flex items-center justify-between">
+                    <div className="p-3 bg-stone-100 dark:bg-stone-900 text-xs flex items-center justify-between border-t border-stone-200 dark:border-stone-800">
                       <a
                         href={`https://wa.me/88${whatsappNumber.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 font-bold text-xs"
+                        className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:underline font-bold text-xs"
                       >
-                        <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>হটলাইন: {whatsappNumber}</span>
+                        <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>{language === 'bn' ? `হটলাইন: ${whatsappNumber}` : `Hotline: ${whatsappNumber}`}</span>
                       </a>
-                      <span className="text-[10px] text-stone-500 font-medium">
-                        🚚 ৬৪ জেলায় ক্যাশ অন ডেলিভারি
+                      <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
+                        {language === 'bn' ? '🚚 ৬৪ জেলায় ক্যাশ অন ডেলিভারি' : '🚚 Nationwide Cash on Delivery'}
                       </span>
                     </div>
                   </motion.div>
@@ -455,13 +577,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Zone 2: Track Order Quick Link (Categories now in Hamburger Menu) */}
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-700">
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-700 dark:text-stone-300">
             <button
               onClick={onOpenTrackOrder}
-              className="text-stone-600 hover:text-stone-900 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 cursor-pointer"
+              className="text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 dark:hover:bg-stone-800 cursor-pointer"
             >
-              <Truck className="w-4 h-4 text-amber-700" />
-              <span>Track Order</span>
+              <Truck className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+              <span>{language === 'bn' ? 'অর্ডার ট্র্যাক' : 'Track Order'}</span>
             </button>
           </div>
 
@@ -470,14 +592,14 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Search Trigger */}
             <div className="relative">
               {isSearchOpen ? (
-                <div className="flex items-center bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 shadow-xs w-48 sm:w-64">
+                <div className="flex items-center bg-white dark:bg-stone-850 border border-stone-300 dark:border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xs w-48 sm:w-64">
                   <Search className="w-4 h-4 text-stone-400 mr-2 shrink-0" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder="Search panjabi, power bank..."
-                    className="w-full text-xs text-stone-800 placeholder-stone-400 focus:outline-none bg-transparent"
+                    placeholder={language === 'bn' ? 'পাঞ্জাবি, পাওয়ার ব্যাংক খুঁজুন...' : 'Search panjabi, power bank...'}
+                    className="w-full text-xs text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none bg-transparent"
                     autoFocus
                   />
                   <button
@@ -485,7 +607,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsSearchOpen(false);
                       onSearchChange('');
                     }}
-                    className="text-stone-400 hover:text-stone-600 ml-1 p-0.5"
+                    className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 ml-1 p-0.5"
                     aria-label="Close search"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -495,7 +617,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => setIsSearchOpen(true)}
                   aria-label="Search store"
-                  className="p-2 text-stone-700 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg transition-colors"
+                  className="p-2 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200/50 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -507,11 +629,11 @@ export const Header: React.FC<HeaderProps> = ({
               whileTap={{ scale: 0.88 }}
               onClick={onOpenWishlist}
               aria-label="View wishlist"
-              className="relative p-2 text-stone-700 hover:text-stone-900 hover:bg-stone-200/50 rounded-lg transition-colors"
+              className="relative p-2 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200/50 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 bg-amber-700 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-1.5 right-1.5 bg-amber-700 dark:bg-amber-500 text-white dark:text-stone-950 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {wishlistCount}
                 </span>
               )}
@@ -523,18 +645,18 @@ export const Header: React.FC<HeaderProps> = ({
               whileTap={{ scale: 0.92 }}
               onClick={onOpenCart}
               aria-label="Open shopping cart"
-              className="flex items-center gap-2 px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-stone-100 rounded-lg transition-colors shadow-xs"
+              className="flex items-center gap-2 px-3.5 py-2 bg-stone-900 dark:bg-amber-500 hover:bg-stone-800 dark:hover:bg-amber-400 text-stone-100 dark:text-stone-950 rounded-lg transition-colors shadow-xs cursor-pointer font-bold"
             >
               <div className="relative">
                 <ShoppingBag className="w-4 h-4" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-amber-500 text-stone-950 text-[10px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-amber-500 dark:bg-stone-900 text-stone-950 dark:text-amber-400 text-[10px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
               </div>
               <span className="text-xs font-semibold hidden sm:inline whitespace-nowrap">
-                {cartTotal > 0 ? `৳${cartTotal.toLocaleString()}` : 'Bag'}
+                {cartTotal > 0 ? `৳${cartTotal.toLocaleString()}` : (language === 'bn' ? 'ব্যাগ' : 'Bag')}
               </span>
             </motion.button>
 
@@ -544,15 +666,15 @@ export const Header: React.FC<HeaderProps> = ({
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={onOpenAccount}
-                title="আমার একাউন্ট ও অর্ডারসমূহ"
+                title={language === 'bn' ? 'আমার একাউন্ট ও অর্ডারসমূহ' : 'My Account & Orders'}
                 aria-label="User Account"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-600/15 hover:bg-amber-600/25 text-amber-900 border border-amber-600/30 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 border border-amber-600/30 dark:border-amber-500/40 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
               >
-                <div className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-bold">
+                <div className="w-5 h-5 rounded-full bg-amber-600 dark:bg-amber-500 text-white dark:text-stone-950 flex items-center justify-center text-[10px] font-bold">
                   {currentUser.displayName?.charAt(0)?.toUpperCase() || currentUser.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <span className="hidden sm:inline max-w-[90px] truncate">
-                  {currentUser.displayName?.split(' ')[0] || 'একাউন্ট'}
+                  {currentUser.displayName?.split(' ')[0] || (language === 'bn' ? 'একাউন্ট' : 'Account')}
                 </span>
               </motion.button>
             ) : (
@@ -560,12 +682,12 @@ export const Header: React.FC<HeaderProps> = ({
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={onOpenAuth}
-                title="লগইন বা সাইন আপ করুন"
+                title={language === 'bn' ? 'লগইন বা সাইন আপ করুন' : 'Sign In or Sign Up'}
                 aria-label="Sign In"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-stone-850 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
               >
-                <UserIcon className="w-4 h-4 text-stone-700" />
-                <span className="hidden sm:inline">লগইন</span>
+                <UserIcon className="w-4 h-4 text-stone-700 dark:text-stone-300" />
+                <span className="hidden sm:inline">{language === 'bn' ? 'লগইন' : 'Login'}</span>
               </motion.button>
             )}
           </div>

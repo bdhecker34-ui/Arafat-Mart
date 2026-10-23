@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { ProductCard } from './components/ProductCard';
@@ -17,6 +17,8 @@ import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 import { CustomerAccountModal } from './components/CustomerAccountModal';
 import { SmartBudgetModal } from './components/SmartBudgetModal';
+import { ProductShareModal, getProductShareUrl } from './components/ProductShareModal';
+import { CustomerWishModal } from './components/CustomerWishModal';
 
 import { AdminSetup } from './admin/AdminSetup';
 import { AdminLogin } from './admin/AdminLogin';
@@ -27,11 +29,15 @@ import {
   subscribeStoreContent,
   saveStoreContentToFirestore,
   saveOrderToFirestore,
+  saveCustomerWishToFirestore,
+  subscribeCustomerWishes,
+  updateCustomerWishStatusInFirestore,
+  deleteCustomerWishFromFirestore,
 } from './services/firestoreService';
 import { testConnection, auth, signOut, onAuthStateChanged, User } from './firebase';
 
 import { BANGLADESH_DIVISIONS } from './data/bangladeshDistricts';
-import { Product, ProductCategory, CartItem, Order } from './types';
+import { Product, ProductCategory, CartItem, Order, CustomerWish, WishStatus } from './types';
 import {
   SlidersHorizontal,
   Check,
@@ -40,6 +46,10 @@ import {
   MapPin,
   ShieldCheck,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
   Phone,
   MessageCircle,
   AlertTriangle,
@@ -78,12 +88,127 @@ export default function App() {
   const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [trackingOrderId, setTrackingOrderId] = useState<string | undefined>(undefined);
   const [isSmartBudgetOpen, setIsSmartBudgetOpen] = useState(false);
+  const [isCustomerWishModalOpen, setIsCustomerWishModalOpen] = useState(false);
+  const [customerWishes, setCustomerWishes] = useState<CustomerWish[]>([]);
+  const [sharingProduct, setSharingProduct] = useState<Product | null>(null);
+  const [hasHandledInitialDeepLink, setHasHandledInitialDeepLink] = useState(false);
 
   // Customer Authentication & Account States
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  // Display Theme & Language Preferences (Persisted across sessions)
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const saved = localStorage.getItem('easymart_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch {
+      // fallback
+    }
+    return 'light';
+  });
+
+  const [language, setLanguage] = useState<'bn' | 'en'>(() => {
+    try {
+      const saved = localStorage.getItem('easymart_lang');
+      if (saved === 'bn' || saved === 'en') return saved;
+    } catch {
+      // fallback
+    }
+    return 'bn';
+  });
+
+  // Apply dark mode class to <html> root element
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('easymart_theme', theme);
+    } catch {}
+  }, [theme]);
+
+  // Persist language preference
+  useEffect(() => {
+    try {
+      localStorage.setItem('easymart_lang', language);
+    } catch {}
+  }, [language]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  }, []);
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage((prev) => (prev === 'bn' ? 'en' : 'bn'));
+  }, []);
+
+  // Deep-Linking: Automatically open specific product if URL has ?product=<id> or #product=<id>
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const checkAndOpenDeepLinkedProduct = () => {
+      const params = new URLSearchParams(window.location.search);
+      let prodId = params.get('product');
+
+      if (!prodId && window.location.hash) {
+        const hashMatch = window.location.hash.match(/product=([^&]+)/);
+        if (hashMatch) {
+          prodId = hashMatch[1];
+        }
+      }
+
+      if (prodId) {
+        const productList = (storeContent.products && storeContent.products.length > 0)
+          ? storeContent.products
+          : DEFAULT_STORE_CONTENT.products;
+        const matched = productList.find((p) => p.id === prodId);
+        if (matched) {
+          setSelectedProduct(matched);
+          if (!hasHandledInitialDeepLink) {
+            setHasHandledInitialDeepLink(true);
+            showToast(language === 'bn' ? 'শেয়ার করা পণ্যটি ওপেন করা হয়েছে!' : 'Shared product opened!');
+          }
+        }
+      }
+    };
+
+    checkAndOpenDeepLinkedProduct();
+
+    const handlePopState = () => {
+      checkAndOpenDeepLinkedProduct();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [storeContent.products, language, hasHandledInitialDeepLink]);
+
+  // Sync URL query parameter when product modal is opened or closed
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const url = new URL(window.location.href);
+      if (selectedProduct) {
+        if (url.searchParams.get('product') !== selectedProduct.id) {
+          url.searchParams.set('product', selectedProduct.id);
+          window.history.replaceState({ productId: selectedProduct.id }, '', url.toString());
+        }
+      } else {
+        if (url.searchParams.has('product')) {
+          url.searchParams.delete('product');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+    } catch (e) {
+      // In case of restricted iframe security
+    }
+  }, [selectedProduct]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -236,8 +361,19 @@ export default function App() {
       }
     });
 
+    // 4. Real-time customer wishes subscription
+    const unsubscribeWishes = subscribeCustomerWishes(
+      (wishes) => {
+        setCustomerWishes(wishes);
+      },
+      (err) => {
+        console.warn('Wishes subscription note:', err);
+      }
+    );
+
     return () => {
       unsubscribe();
+      unsubscribeWishes();
     };
   }, []);
 
@@ -514,6 +650,60 @@ export default function App() {
     }
   };
 
+  // Submit Customer Wish / Product Request
+  const handleCustomerWishSubmit = async (wish: CustomerWish): Promise<boolean> => {
+    try {
+      const ok = await saveCustomerWishToFirestore(wish);
+      if (ok) {
+        setCustomerWishes((prev) => [wish, ...prev.filter((w) => w.id !== wish.id)]);
+        showToast(language === 'bn' ? 'আপনার উইশটি অ্যাডমিনের কাছে জমা হয়েছে!' : 'Your wish has been submitted to admin!');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Customer wish submit error:', e);
+      return false;
+    }
+  };
+
+  // Update Customer Wish Status & Notes
+  const handleUpdateCustomerWishStatus = async (
+    wishId: string,
+    status: WishStatus,
+    adminNotes?: string
+  ): Promise<boolean> => {
+    try {
+      const ok = await updateCustomerWishStatusInFirestore(wishId, status, adminNotes);
+      if (ok) {
+        setCustomerWishes((prev) =>
+          prev.map((w) => (w.id === wishId ? { ...w, status, adminNotes: adminNotes ?? w.adminNotes } : w))
+        );
+        showToast('উইশ স্ট্যাটাস আপডেট হয়েছে');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Update wish status error:', e);
+      return false;
+    }
+  };
+
+  // Delete Customer Wish
+  const handleDeleteCustomerWish = async (wishId: string): Promise<boolean> => {
+    try {
+      const ok = await deleteCustomerWishFromFirestore(wishId);
+      if (ok) {
+        setCustomerWishes((prev) => prev.filter((w) => w.id !== wishId));
+        showToast('উইশ মুছে ফেলা হয়েছে');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Delete wish error:', e);
+      return false;
+    }
+  };
+
   // Category Icon Resolver
   const getCategoryIcon = (categoryId: string) => {
     switch (categoryId) {
@@ -544,6 +734,91 @@ export default function App() {
       })),
     ];
   }, [storeContent.categories]);
+
+  // Category Carousel Slider State & Controls
+  const categorySliderRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [isCategoryAutoSlidePaused, setIsCategoryAutoSlidePaused] = useState(false);
+  const [isHoveredOrTouched, setIsHoveredOrTouched] = useState(false);
+
+  const checkCategoryScrollButtons = useCallback(() => {
+    if (categorySliderRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = categorySliderRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = categorySliderRef.current;
+    if (!el) return;
+    checkCategoryScrollButtons();
+    el.addEventListener('scroll', checkCategoryScrollButtons, { passive: true });
+    window.addEventListener('resize', checkCategoryScrollButtons);
+    return () => {
+      el.removeEventListener('scroll', checkCategoryScrollButtons);
+      window.removeEventListener('resize', checkCategoryScrollButtons);
+    };
+  }, [checkCategoryScrollButtons, categoryTabs]);
+
+  const scrollCategory = (direction: 'left' | 'right') => {
+    if (categorySliderRef.current) {
+      const el = categorySliderRef.current;
+      const scrollStep = Math.max(el.clientWidth * 0.45, 190);
+      
+      if (direction === 'right') {
+        const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 15;
+        if (atEnd) {
+          el.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          el.scrollBy({ left: scrollStep, behavior: 'smooth' });
+        }
+      } else {
+        const atStart = el.scrollLeft <= 10;
+        if (atStart) {
+          el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+        } else {
+          el.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+        }
+      }
+    }
+  };
+
+  // Automatic Slide Interval (loops smoothly every 2.6 seconds, pauses when user hovers or touches)
+  useEffect(() => {
+    if (isCategoryAutoSlidePaused || isHoveredOrTouched) return;
+
+    const intervalId = setInterval(() => {
+      if (categorySliderRef.current) {
+        const el = categorySliderRef.current;
+        if (el.scrollWidth <= el.clientWidth) return;
+
+        const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 25;
+        if (atEnd) {
+          el.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          // Slide by roughly one category card with gap
+          const step = 175;
+          el.scrollBy({ left: step, behavior: 'smooth' });
+        }
+      }
+    }, 2600);
+
+    return () => clearInterval(intervalId);
+  }, [isCategoryAutoSlidePaused, isHoveredOrTouched, categoryTabs]);
+
+  // Center active category inside the slider view when chosen
+  useEffect(() => {
+    if (categorySliderRef.current && activeCategory) {
+      const activeBtn = categorySliderRef.current.querySelector<HTMLElement>(
+        `[data-category-id="${activeCategory}"]`
+      );
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeCategory]);
 
   // Filtered & Sorted Products (using live storeContent.products)
   const filteredProducts = useMemo(() => {
@@ -595,8 +870,11 @@ export default function App() {
         adminEmail={adminEmail || 'admin@arafatmart.com'}
         content={storeContent}
         orders={orders}
+        customerWishes={customerWishes}
         onUpdateContent={handleUpdateContent}
         onUpdateOrders={handleUpdateOrders}
+        onUpdateWishStatus={handleUpdateCustomerWishStatus}
+        onDeleteWish={handleDeleteCustomerWish}
         onLogout={handleAdminLogout}
         onViewStore={() => {
           setCurrentView('store');
@@ -676,10 +954,10 @@ export default function App() {
 
   // ================= PUBLIC USER APPLICATION =================
   return (
-    <div className="min-h-screen bg-[#f7f3ea] text-stone-900 flex flex-col font-sans selection:bg-amber-900 selection:text-white">
+    <div className="min-h-screen bg-[#f7f3ea] dark:bg-[#0c0a09] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-900 selection:text-white transition-colors duration-200">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-stone-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-20 right-6 z-50 bg-stone-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-in slide-in-from-bottom duration-200">
           <Check className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
@@ -698,6 +976,7 @@ export default function App() {
           setIsTrackOrderOpen(true);
         }}
         onOpenSmartBudget={() => setIsSmartBudgetOpen(true)}
+        onOpenCustomerWishModal={() => setIsCustomerWishModalOpen(true)}
         onOpenAdmin={openAdminConsole}
         currentUser={currentUser}
         onOpenAuth={() => {
@@ -709,6 +988,10 @@ export default function App() {
         noticeEnabled={storeContent.notice?.enabled}
         whatsappNumber={storeContent.contact?.whatsapp}
         storeName={storeContent.settings?.storeName}
+        language={language}
+        onToggleLanguage={toggleLanguage}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         activeCategory={activeCategory}
         onSelectCategory={(cat) => {
           setActiveCategory(cat);
@@ -739,62 +1022,154 @@ export default function App() {
 
       {/* Main Catalog Section */}
       <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full">
-        {/* Modern Icon-Based Category Box Section */}
+        {/* Modern Icon-Based Category Slider Section */}
         {storeContent.homepage?.showCategoryFilters !== false && (
-          <section className="mb-8" aria-label="Product Categories">
-            {/* Section Heading & Category Info */}
-            <div className="flex items-center justify-between mb-4 px-0.5">
+          <section className="mb-10 relative" aria-label="Product Categories Slider">
+            {/* Section Heading & Category Info & Header Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 px-0.5">
               <div>
-                <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 tracking-tight flex items-center gap-2">
-                  <span>পণ্য ক্যাটাগরি</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
-                    Categories
+                <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 dark:text-stone-100 tracking-tight flex items-center gap-2">
+                  <span>{language === 'bn' ? 'পণ্য ক্যাটাগরি' : 'Product Categories'}</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                    {language === 'bn' ? 'ক্যাটাগরি স্লাইডার' : 'Category Slider'}
                   </span>
                 </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  পছন্দের ক্যাটাগরি সিলেক্ট করে দ্রুত পণ্য ব্রাউজ করুন
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                  {language === 'bn' 
+                    ? 'ডানে-বামে স্লাইড করে ক্যাটাগরি বেছে নিন এবং সহজেই পণ্য ব্রাউজ করুন' 
+                    : 'Slide left & right to explore categories and filter items easily'}
                 </p>
               </div>
 
-              {activeCategory !== 'all' && (
+              <div className="flex items-center gap-3 self-end sm:self-auto">
+                {activeCategory !== 'all' && (
+                  <button
+                    onClick={() => {
+                      setActiveCategory('all');
+                      setSearchQuery('');
+                    }}
+                    className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 underline flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    {language === 'bn' ? 'সব পণ্য দেখুন' : 'Show All'}
+                  </button>
+                )}
+
+                {/* Auto-Slide Play/Pause Toggle Indicator */}
                 <button
-                  onClick={() => {
-                    setActiveCategory('all');
-                    setSearchQuery('');
-                  }}
-                  className="text-xs font-semibold text-amber-700 hover:text-amber-800 underline flex items-center gap-1 cursor-pointer transition-colors"
+                  onClick={() => setIsCategoryAutoSlidePaused((prev) => !prev)}
+                  aria-label={isCategoryAutoSlidePaused ? 'Resume auto slide' : 'Pause auto slide'}
+                  title={
+                    language === 'bn'
+                      ? (isCategoryAutoSlidePaused ? 'অটো স্লাইড চালু করুন' : 'অটো স্লাইড সাময়িক থামান')
+                      : (isCategoryAutoSlidePaused ? 'Resume auto-slide' : 'Pause auto-slide')
+                  }
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                    isCategoryAutoSlidePaused
+                      ? 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 shadow-xs'
+                      : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                  }`}
                 >
-                  সব পণ্য দেখুন (Show All)
+                  {isCategoryAutoSlidePaused ? (
+                    <>
+                      <Play className="w-3 h-3 text-stone-500 dark:text-stone-400 fill-stone-500 dark:fill-stone-400" />
+                      <span className="text-[11px]">{language === 'bn' ? 'অটো স্লাইড বন্ধ' : 'Auto Off'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      <span className="text-[11px]">
+                        {language === 'bn' ? 'অটো স্লাইড চালু' : 'Auto Sliding'}
+                      </span>
+                      <Pause className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 ml-0.5" />
+                    </>
+                  )}
                 </button>
-              )}
+
+                {/* Slider Previous / Next Controls */}
+                <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-850 p-1 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
+                  <button
+                    onClick={() => scrollCategory('left')}
+                    aria-label={language === 'bn' ? 'বাম দিকে স্লাইড' : 'Slide Left'}
+                    title={language === 'bn' ? 'পূর্ববর্তী ক্যাটাগরি' : 'Previous Categories'}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 shadow-xs hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-950/50 dark:hover:text-amber-400 active:scale-95 cursor-pointer border border-stone-200/80 dark:border-stone-700/80"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => scrollCategory('right')}
+                    aria-label={language === 'bn' ? 'ডান দিকে স্লাইড' : 'Slide Right'}
+                    title={language === 'bn' ? 'পরবর্তী ক্যাটাগরি' : 'Next Categories'}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 shadow-xs hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-950/50 dark:hover:text-amber-400 active:scale-95 cursor-pointer border border-stone-200/80 dark:border-stone-700/80"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Horizontal Single-Row Category Boxes with Smooth Horizontal Scroll */}
-            <div className="relative">
-              <div className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth py-1 px-0.5">
+            {/* Slider Container with Edge Navigation Controls */}
+            <div
+              className="relative group"
+              onMouseEnter={() => setIsHoveredOrTouched(true)}
+              onMouseLeave={() => setIsHoveredOrTouched(false)}
+              onTouchStart={() => setIsHoveredOrTouched(true)}
+              onTouchEnd={() => setIsHoveredOrTouched(false)}
+              onTouchCancel={() => setIsHoveredOrTouched(false)}
+            >
+              {/* Floating Left Arrow (Desktop) */}
+              <button
+                onClick={() => scrollCategory('left')}
+                aria-label="Previous Slide"
+                className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-md shadow-lg border border-stone-200/90 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-amber-500 hover:text-stone-950 dark:hover:bg-amber-500 dark:hover:text-stone-950 items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+
+              {/* Floating Right Arrow (Desktop) */}
+              <button
+                onClick={() => scrollCategory('right')}
+                aria-label="Next Slide"
+                className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-md shadow-lg border border-stone-200/90 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-amber-500 hover:text-stone-950 dark:hover:bg-amber-500 dark:hover:text-stone-950 items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+
+              {/* Horizontal Slider Track */}
+              <div
+                ref={categorySliderRef}
+                className="flex items-stretch gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-2.5 px-1 touch-pan-x"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
                 {categoryTabs.map((cat) => {
                   const isSelected = activeCategory === cat.id;
+                  const displayPrimary = language === 'bn' ? (cat.nameBn || cat.label) : cat.label;
+                  const displaySub = language === 'bn' ? (cat.nameBn ? cat.label : null) : cat.nameBn;
+
                   return (
                     <motion.button
                       key={cat.id}
-                      whileHover={{ y: -3, scale: 1.02 }}
+                      data-category-id={cat.id}
+                      whileHover={{ y: -4, scale: 1.02 }}
                       whileTap={{ scale: 0.96 }}
                       onClick={() => {
                         setActiveCategory(cat.id as ProductCategory);
                         setSearchQuery('');
                       }}
-                      className={`flex-1 min-w-[115px] sm:min-w-[135px] md:min-w-[150px] p-3.5 sm:p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all cursor-pointer relative select-none ${
+                      className={`snap-start flex-shrink-0 w-[125px] sm:w-[145px] md:w-[160px] p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all cursor-pointer relative select-none ${
                         isSelected
-                          ? 'bg-stone-900 text-white border-2 border-stone-900 shadow-lg ring-4 ring-stone-900/10'
-                          : 'bg-white hover:bg-stone-50 text-stone-800 border border-stone-200/90 shadow-xs hover:shadow-md hover:border-stone-300'
+                          ? 'bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 border-2 border-stone-900 dark:border-amber-500 shadow-lg ring-4 ring-stone-900/10 dark:ring-amber-500/25'
+                          : 'bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-850 text-stone-800 dark:text-stone-200 border border-stone-200/90 dark:border-stone-800 shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-600/50'
                       }`}
                       aria-pressed={isSelected}
                     >
                       {/* Active Indicator Top-Right Dot */}
                       {isSelected && (
-                        <span className="absolute top-2 right-2 flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                        <span className="absolute top-2.5 right-2.5 flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 dark:bg-stone-950 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 dark:bg-stone-950"></span>
                         </span>
                       )}
 
@@ -802,30 +1177,30 @@ export default function App() {
                       <div
                         className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2.5 transition-colors ${
                           isSelected
-                            ? 'bg-amber-400 text-stone-950 shadow-xs'
-                            : 'bg-stone-100 text-stone-700'
+                            ? 'bg-amber-400 dark:bg-stone-950 text-stone-950 dark:text-amber-400 shadow-xs'
+                            : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300'
                         }`}
                       >
                         {getCategoryIcon(cat.id)}
                       </div>
 
-                      {/* Original Category Name */}
+                      {/* Category Title */}
                       <span
                         className={`text-xs sm:text-sm font-bold tracking-tight line-clamp-1 ${
-                          isSelected ? 'text-white' : 'text-stone-800'
+                          isSelected ? 'text-white dark:text-stone-950' : 'text-stone-800 dark:text-stone-100'
                         }`}
                       >
-                        {cat.label}
+                        {displayPrimary}
                       </span>
 
-                      {/* Subtle Bengali name subtext if available */}
-                      {cat.nameBn && (
+                      {/* Bilingual Subtext */}
+                      {displaySub && (
                         <span
                           className={`text-[10px] sm:text-[11px] mt-0.5 line-clamp-1 ${
-                            isSelected ? 'text-stone-300' : 'text-stone-500'
+                            isSelected ? 'text-stone-300 dark:text-stone-900 font-medium' : 'text-stone-500 dark:text-stone-400'
                           }`}
                         >
-                          {cat.nameBn}
+                          {displaySub}
                         </span>
                       )}
                     </motion.button>
@@ -837,30 +1212,38 @@ export default function App() {
         )}
 
         {/* Product Count & Sorting Control Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-stone-200">
-          <div className="text-xs sm:text-sm text-stone-600 font-medium">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-stone-200 dark:border-stone-800">
+          <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 font-medium">
             <span>
-              প্রদর্শিত পণ্য সংখ্যা:{' '}
-              <strong className="font-mono text-stone-900 text-sm">
+              {language === 'bn' ? 'প্রদর্শিত পণ্য সংখ্যা:' : 'Showing Products:'}{' '}
+              <strong className="font-mono text-stone-900 dark:text-stone-100 text-sm">
                 {filteredProducts.length}
               </strong>{' '}
-              টি
+              {language === 'bn' ? 'টি' : 'items'}
             </span>
           </div>
 
           {/* Sort Dropdown */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-stone-600">
-            <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 shadow-xs">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500" />
+          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-stone-600 dark:text-stone-400">
+            <div className="flex items-center gap-1.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xs">
+              <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-xs font-medium text-stone-800 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-medium text-stone-800 dark:text-stone-200 focus:outline-none cursor-pointer"
               >
-                <option value="featured">Featured Picks (বাছাইকৃত)</option>
-                <option value="price-asc">Price: Low to High (কম থেকে বেশি দাম)</option>
-                <option value="price-desc">Price: High to Low (বেশি থেকে কম দাম)</option>
-                <option value="rating">Top Customer Rated (শীর্ষ রেটিং)</option>
+                <option value="featured" className="dark:bg-stone-900 dark:text-stone-100">
+                  {language === 'bn' ? 'Featured Picks (বাছাইকৃত)' : 'Featured Picks'}
+                </option>
+                <option value="price-asc" className="dark:bg-stone-900 dark:text-stone-100">
+                  {language === 'bn' ? 'Price: Low to High (কম থেকে বেশি দাম)' : 'Price: Low to High'}
+                </option>
+                <option value="price-desc" className="dark:bg-stone-900 dark:text-stone-100">
+                  {language === 'bn' ? 'Price: High to Low (বেশি থেকে কম দাম)' : 'Price: High to Low'}
+                </option>
+                <option value="rating" className="dark:bg-stone-900 dark:text-stone-100">
+                  {language === 'bn' ? 'Top Customer Rated (শীর্ষ রেটিং)' : 'Top Customer Rated'}
+                </option>
               </select>
             </div>
           </div>
@@ -868,15 +1251,15 @@ export default function App() {
 
         {/* Active Search Filter State */}
         {searchQuery.trim() && (
-          <div className="mb-6 flex items-center justify-between bg-amber-50 border border-amber-200/80 px-4 py-2.5 rounded-xl text-xs text-amber-900">
+          <div className="mb-6 flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 px-4 py-2.5 rounded-xl text-xs text-amber-900 dark:text-amber-300">
             <span>
-              Searching for &ldquo;<strong>{searchQuery}</strong>&rdquo;
+              {language === 'bn' ? 'অনুসন্ধান ফলাফল:' : 'Searching for:'} &ldquo;<strong>{searchQuery}</strong>&rdquo;
             </span>
             <button
               onClick={() => setSearchQuery('')}
-              className="text-amber-800 underline font-semibold hover:text-amber-950"
+              className="text-amber-800 dark:text-amber-400 underline font-semibold hover:text-amber-950 dark:hover:text-amber-200 cursor-pointer"
             >
-              Clear Search
+              {language === 'bn' ? 'সার্চ মুছুন' : 'Clear Search'}
             </button>
           </div>
         )}
@@ -885,20 +1268,24 @@ export default function App() {
         {storeContent.homepage?.showProductGrid !== false && (
           <>
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-2xl border border-stone-200 p-8">
-                <Search className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-stone-800">No matching products found</h3>
-                <p className="text-xs text-stone-500 max-w-sm mx-auto mt-1">
-                  Try searching for &quot;panjabi&quot;, &quot;kurti&quot;, &quot;power bank&quot;, or &quot;cookware&quot;, or switch to another category.
+              <div className="text-center py-20 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-8">
+                <Search className="w-12 h-12 text-stone-300 dark:text-stone-600 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-stone-800 dark:text-stone-200">
+                  {language === 'bn' ? 'কোনো পণ্য পাওয়া যায়নি' : 'No matching products found'}
+                </h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto mt-1">
+                  {language === 'bn' 
+                    ? '"পাঞ্জাবি", "কুর্তি", "পাওয়ার ব্যাংক", বা অন্য ক্যাটাগরি অনুসন্ধান করুন।' 
+                    : 'Try searching for "panjabi", "kurti", "power bank", or "cookware", or switch to another category.'}
                 </p>
                 <button
                   onClick={() => {
                     setSearchQuery('');
                     setActiveCategory('all');
                   }}
-                  className="mt-4 px-4 py-2 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition-colors"
+                  className="mt-4 px-4 py-2 bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 text-xs font-semibold rounded-lg hover:bg-stone-800 dark:hover:bg-amber-400 transition-colors cursor-pointer"
                 >
-                  Reset Filters
+                  {language === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
                 </button>
               </div>
             ) : (
@@ -908,10 +1295,12 @@ export default function App() {
                     key={product.id}
                     index={index}
                     product={product}
+                    language={language}
                     onQuickView={setSelectedProduct}
                     onAddToCart={(p) => handleAddToCart(p, 1)}
                     isWishlisted={wishlist.some((w) => w.id === product.id)}
                     onToggleWishlist={handleToggleWishlist}
+                    onOpenShare={setSharingProduct}
                   />
                 ))}
               </div>
@@ -921,87 +1310,101 @@ export default function App() {
 
         {/* Nationwide 64-District Coverage & Logistics Banner */}
         {storeContent.homepage?.showNationwideBanner !== false && (
-          <section className="mt-16 bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-xs">
+          <section className="mt-16 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-xs">
             <div className="grid grid-cols-1 lg:grid-cols-12">
               {/* Left Column: Delivery Commitment */}
               <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
                 <div>
-                  <div className="text-xs uppercase font-bold tracking-widest text-amber-800 mb-2">
-                    Nationwide Logistics Network
+                  <div className="text-xs uppercase font-bold tracking-widest text-amber-800 dark:text-amber-400 mb-2">
+                    {language === 'bn' ? 'দেশজুড়ে ৬৪ জেলায় ডেলিভারি নেটওয়ার্ক' : 'Nationwide Logistics Network'}
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-stone-900 tracking-tight leading-snug">
-                    Fast, verified doorstep delivery to all 64 districts.
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-stone-900 dark:text-stone-100 tracking-tight leading-snug">
+                    {language === 'bn' 
+                      ? '৬৪ জেলার যেকোনো প্রান্তে হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি।' 
+                      : 'Fast, verified doorstep delivery to all 64 districts.'}
                   </h2>
-                  <p className="mt-2.5 text-xs sm:text-sm text-stone-600 leading-relaxed">
-                    Whether you are in Dhaka, Chattogram, Sylhet, Bogura, Rajshahi, or remote thanas of Khulna and Barishal, our courier partners ensure your package arrives securely wrapped with double tamper-evident seals.
+                  <p className="mt-2.5 text-xs sm:text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
+                    {language === 'bn'
+                      ? 'ঢাকা, চট্টগ্রাম, সিলেট, রাজশাহী, বগুড়া কিংবা প্রত্যন্ত যেকোনো উপজেলায়—আমাদের নির্ভরযোগ্য কুরিয়ার টিম নিশ্চিত করে অক্ষত ও অরিজিনাল প্যাকেজ।'
+                      : 'Whether you are in Dhaka, Chattogram, Sylhet, Bogura, Rajshahi, or remote thanas of Khulna and Barishal, our courier partners ensure your package arrives securely wrapped with double tamper-evident seals.'}
                   </p>
 
                   {/* 3 Value Pillars */}
                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                      <span className="font-bold text-stone-900 block">Dhaka Metropolis</span>
-                      <span className="text-stone-500 text-[11px] mt-0.5 block">
-                        24 – 48 Hours Delivery · ৳{storeContent.settings?.dhakaDeliveryFee ?? 60}
+                    <div className="p-3 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-200 dark:border-stone-700">
+                      <span className="font-bold text-stone-900 dark:text-stone-100 block">
+                        {language === 'bn' ? 'ঢাকা মেট্রো এরিয়া' : 'Dhaka Metropolis'}
+                      </span>
+                      <span className="text-stone-500 dark:text-stone-400 text-[11px] mt-0.5 block">
+                        {language === 'bn' ? '২৪ – ৪৮ ঘণ্টায় ডেলিভারি' : '24 – 48 Hours Delivery'} · ৳{storeContent.settings?.dhakaDeliveryFee ?? 60}
                       </span>
                     </div>
-                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                      <span className="font-bold text-stone-900 block">All Other Districts</span>
-                      <span className="text-stone-500 text-[11px] mt-0.5 block">
-                        2 – 3 Days Delivery · ৳{storeContent.settings?.outsideDeliveryFee ?? 120}
+                    <div className="p-3 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-200 dark:border-stone-700">
+                      <span className="font-bold text-stone-900 dark:text-stone-100 block">
+                        {language === 'bn' ? 'ঢাকার বাইরে সব জেলা' : 'All Other Districts'}
+                      </span>
+                      <span className="text-stone-500 dark:text-stone-400 text-[11px] mt-0.5 block">
+                        {language === 'bn' ? '২ – ৩ দিনে ডেলিভারি' : '2 – 3 Days Delivery'} · ৳{storeContent.settings?.outsideDeliveryFee ?? 120}
                       </span>
                     </div>
-                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
-                      <span className="font-bold text-amber-900 block">
-                        Orders over ৳{storeContent.settings?.freeShippingThreshold ?? 1999}
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800/80">
+                      <span className="font-bold text-amber-900 dark:text-amber-300 block">
+                        {language === 'bn' ? `৳${storeContent.settings?.freeShippingThreshold ?? 1999} এর বেশি অর্ডারে` : `Orders over ৳${storeContent.settings?.freeShippingThreshold ?? 1999}`}
                       </span>
-                      <span className="text-amber-800 text-[11px] mt-0.5 block">
-                        100% Free Nationwide Delivery
+                      <span className="text-amber-800 dark:text-amber-400 text-[11px] mt-0.5 block font-semibold">
+                        {language === 'bn' ? '১০০% ফ্রি হোম ডেলিভারি' : '100% Free Nationwide Delivery'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-stone-600">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Parcel open check before paying rider allowed</span>
+                <div className="mt-6 pt-4 border-t border-stone-100 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>
+                      {language === 'bn' ? 'ডেলিভারি ম্যানের সামনে পার্সেল চেক করার সুবিধা' : 'Parcel open check before paying rider allowed'}
+                    </span>
                   </div>
                   <button
                     onClick={() => {
                       setTrackingOrderId(undefined);
                       setIsTrackOrderOpen(true);
                     }}
-                    className="font-bold text-stone-900 hover:text-amber-800 flex items-center gap-1 transition-colors"
+                    className="font-bold text-stone-900 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-1 transition-colors cursor-pointer"
                   >
-                    <span>Track Consignment</span>
+                    <span>{language === 'bn' ? 'পার্সেল ট্র্যাক করুন' : 'Track Consignment'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
               {/* Right Column: Division Summary Grid */}
-              <div className="lg:col-span-5 bg-stone-50/70 p-6 sm:p-8 border-t lg:border-t-0 lg:border-l border-stone-200 flex flex-col justify-center">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 mb-3 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-amber-700" />
-                  Administrative Divisions Served:
+              <div className="lg:col-span-5 bg-stone-50/70 dark:bg-stone-850/60 p-6 sm:p-8 border-t lg:border-t-0 lg:border-l border-stone-200 dark:border-stone-800 flex flex-col justify-center">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                  <span>{language === 'bn' ? 'সেবা প্রদানকারী প্রশাসনিক বিভাগসমূহ:' : 'Administrative Divisions Served:'}</span>
                 </h3>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {BANGLADESH_DIVISIONS.map((div) => (
                     <div
                       key={div.id}
-                      className="p-2 bg-white rounded-lg border border-stone-200/80 flex items-center justify-between"
+                      className="p-2 bg-white dark:bg-stone-800 rounded-lg border border-stone-200/80 dark:border-stone-700 flex items-center justify-between"
                     >
-                      <span className="font-semibold text-stone-800">{div.nameBn}</span>
-                      <span className="text-[10px] text-stone-500 font-mono">
-                        {div.districts.length} Dist.
+                      <span className="font-semibold text-stone-800 dark:text-stone-200">
+                        {language === 'bn' ? div.nameBn : div.name}
+                      </span>
+                      <span className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">
+                        {div.districts.length} {language === 'bn' ? 'জেলা' : 'Dist.'}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <p className="mt-4 text-[11px] text-stone-500 text-center">
-                  Total 64 districts and 495+ upazilas covered nationwide with Cash on Delivery.
+                <p className="mt-4 text-[11px] text-stone-500 dark:text-stone-400 text-center">
+                  {language === 'bn' 
+                    ? 'ক্যাশ অন ডেলিভারিতে সমগ্র ৬৪ জেলা ও ৪৯৫+ উপজেলা অন্তর্ভুক্ত।' 
+                    : 'Total 64 districts and 495+ upazilas covered nationwide with Cash on Delivery.'}
                 </p>
               </div>
             </div>
@@ -1040,6 +1443,18 @@ export default function App() {
         }}
         isWishlisted={selectedProduct ? wishlist.some((w) => w.id === selectedProduct.id) : false}
         onToggleWishlist={handleToggleWishlist}
+        onOpenShare={setSharingProduct}
+        language={language}
+        onToast={showToast}
+      />
+
+      {/* Product Share Modal */}
+      <ProductShareModal
+        product={sharingProduct}
+        isOpen={!!sharingProduct}
+        onClose={() => setSharingProduct(null)}
+        language={language}
+        onToast={showToast}
       />
 
       {/* Cart Drawer */}
@@ -1146,7 +1561,17 @@ export default function App() {
         onInstantCheckoutWithItems={handleInstantCheckoutWithItems}
       />
 
-      {/* Floating WhatsApp Quick Contact Button (Live dynamic phone) */}
+      {/* Customer Wish / Product Request Modal */}
+      <CustomerWishModal
+        isOpen={isCustomerWishModalOpen}
+        onClose={() => setIsCustomerWishModalOpen(false)}
+        currentUser={currentUser}
+        language={language}
+        onSubmitWish={handleCustomerWishSubmit}
+        whatsappNumber={storeContent.contact?.whatsapp}
+      />
+
+      {/* Floating WhatsApp Quick Contact Button (Positioned on the Right side) */}
       <motion.a
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.92 }}
@@ -1154,9 +1579,17 @@ export default function App() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`Chat on WhatsApp: ${storeContent.contact?.whatsapp || '01410556747'}`}
-        className="fixed bottom-6 left-6 z-40 bg-emerald-600 hover:bg-emerald-500 text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-2xl flex items-center gap-2 transition-colors border border-emerald-400/30"
+        className="fixed bottom-6 right-6 z-40 bg-[#25D366] hover:bg-[#20ba59] text-white p-3 sm:px-4 sm:py-3 rounded-full shadow-2xl flex items-center gap-2 transition-all border border-emerald-300/40 hover:shadow-emerald-500/30 group cursor-pointer"
       >
-        <MessageCircle className="w-5 h-5 fill-current" />
+        <span className="relative flex items-center justify-center">
+          <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
+          <span className="absolute -top-1 -right-1 flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+          </span>
+        </span>
         <span className="hidden sm:inline text-xs font-bold tracking-wide">
           WhatsApp {storeContent.contact?.whatsapp || '01410556747'}
         </span>

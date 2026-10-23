@@ -58,6 +58,68 @@
         "timestamp": { "type": "string", "description": "Log timestamp" }
       },
       "required": ["action", "adminEmail", "timestamp"]
+    },
+    "CustomerWish": {
+      "title": "CustomerWish",
+      "description": "Customer product wishlist submissions and requests",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Wish item title", "maxLength": 200 },
+        "category": { "type": "string", "description": "Preferred product category", "maxLength": 50 },
+        "expectedPrice": { "type": "string", "description": "Expected price or budget", "maxLength": 50 },
+        "description": { "type": "string", "description": "Detailed wish notes", "maxLength": 1000 },
+        "customerName": { "type": "string", "description": "Customer contact name", "maxLength": 100 },
+        "customerPhone": { "type": "string", "description": "Customer mobile phone number", "maxLength": 20 },
+        "customerEmail": { "type": "string", "description": "Customer email", "maxLength": 100 },
+        "status": { "type": "string", "description": "Fulfillment status", "maxLength": 30 },
+        "createdAt": { "type": "string", "description": "Submission timestamp" }
+      },
+      "required": ["title", "customerName", "customerPhone", "description", "status"]
+    },
+    "FeedPost": {
+      "title": "FeedPost",
+      "description": "User community posts with captions and postimages.org hosted photos",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string", "description": "Firebase Auth UID of post author", "maxLength": 128 },
+        "authorName": { "type": "string", "description": "Display name of author", "maxLength": 100 },
+        "authorAvatar": { "type": "string", "description": "Avatar image URL from postimages.org or placeholder" },
+        "caption": { "type": "string", "description": "Text caption of the post", "maxLength": 3000 },
+        "imageUrl": { "type": "string", "description": "Image URL strictly hosted on postimages.org" },
+        "likes": { "type": "array", "description": "Array of user UIDs who liked the post" },
+        "likesCount": { "type": "number", "description": "Total number of likes" },
+        "commentsCount": { "type": "number", "description": "Total number of comments" },
+        "status": { "type": "string", "description": "Post status (active/deleted)", "maxLength": 20 },
+        "createdAt": { "type": "string", "description": "Post creation ISO timestamp" }
+      },
+      "required": ["authorId", "authorName", "caption", "status", "createdAt"]
+    },
+    "FeedComment": {
+      "title": "FeedComment",
+      "description": "Comments on community feed posts",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string", "description": "Target post ID", "maxLength": 128 },
+        "authorId": { "type": "string", "description": "Comment author UID", "maxLength": 128 },
+        "authorName": { "type": "string", "description": "Comment author name", "maxLength": 100 },
+        "authorAvatar": { "type": "string", "description": "Comment author avatar URL" },
+        "content": { "type": "string", "description": "Comment text", "maxLength": 1000 },
+        "createdAt": { "type": "string", "description": "Comment ISO timestamp" }
+      },
+      "required": ["postId", "authorId", "authorName", "content", "createdAt"]
+    },
+    "CommunityProfile": {
+      "title": "CommunityProfile",
+      "description": "Public user profile with avatar from postimages.org and bio",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "User UID", "maxLength": 128 },
+        "displayName": { "type": "string", "description": "User display name", "maxLength": 100 },
+        "avatarUrl": { "type": "string", "description": "Avatar URL from postimages.org" },
+        "bio": { "type": "string", "description": "Short bio or tagline", "maxLength": 300 },
+        "joinedAt": { "type": "string", "description": "Date user joined community" }
+      },
+      "required": ["userId", "displayName"]
     }
   },
   "firestore": {
@@ -76,6 +138,22 @@
     "/audit_logs/{logId}": {
       "schema": { "$ref": "#/entities/AuditLog" },
       "description": "Chronological administrative action logs"
+    },
+    "/customer_wishes/{wishId}": {
+      "schema": { "$ref": "#/entities/CustomerWish" },
+      "description": "Customer wishlist submissions and product requests"
+    },
+    "/feed_posts/{postId}": {
+      "schema": { "$ref": "#/entities/FeedPost" },
+      "description": "Community posts with captions and postimages.org photos"
+    },
+    "/feed_comments/{commentId}": {
+      "schema": { "$ref": "#/entities/FeedComment" },
+      "description": "Comments on community feed posts"
+    },
+    "/user_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/CommunityProfile" },
+      "description": "Public user profiles with postimages.org avatar"
     }
   }
 }

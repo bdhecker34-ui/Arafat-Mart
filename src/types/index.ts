@@ -94,3 +94,56 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
+export type WishStatus = 'pending' | 'reviewing' | 'fulfilled' | 'cancelled';
+
+export interface CustomerWish {
+  id: string;
+  title: string;
+  category?: string;
+  expectedPrice?: string;
+  description: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  referenceUrl?: string;
+  status: WishStatus;
+  adminNotes?: string;
+  userId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface FeedComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface FeedPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  caption: string;
+  imageUrl?: string;
+  likes: string[]; // array of user UIDs
+  likesCount: number;
+  commentsCount: number;
+  status: 'active' | 'deleted';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CommunityProfile {
+  userId: string;
+  displayName: string;
+  avatarUrl?: string;
+  bio?: string;
+  location?: string;
+  joinedAt?: string;
+  updatedAt?: string;
+}

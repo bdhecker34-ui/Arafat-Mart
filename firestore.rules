@@ -70,5 +70,53 @@ service cloud.firestore {
       allow read: if isValidId(logId) && isAdmin();
       allow create: if isValidId(logId) && isAdmin();
     }
+
+    // 6. Customer Wishes & Product Requests
+    match /customer_wishes/{wishId} {
+      // Anyone can submit a wish (with payload validation)
+      allow create: if isValidId(wishId) &&
+        incoming().title is string && incoming().title.size() <= 200 &&
+        incoming().customerName is string && incoming().customerName.size() <= 100 &&
+        incoming().customerPhone is string && incoming().customerPhone.size() <= 20 &&
+        incoming().description is string && incoming().description.size() <= 1000;
+
+      // Admin has full read and write access; signed-in user can read their own submissions
+      allow read: if isValidId(wishId) && (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid));
+      allow update, delete: if isValidId(wishId) && isAdmin();
+    }
+
+    // 7. Community Feed Posts
+    match /feed_posts/{postId} {
+      // Anyone can read community posts
+      allow read: if isValidId(postId);
+      // Only signed-up / authenticated users can create posts
+      allow create: if isValidId(postId) && isSignedIn() &&
+        incoming().authorId == request.auth.uid &&
+        incoming().caption is string && incoming().caption.size() <= 3000;
+      // Users can toggle likes / updates; Admin has full control
+      allow update: if isValidId(postId) && (isAdmin() || isSignedIn());
+      // Admin or post author can delete
+      allow delete: if isValidId(postId) && (isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid));
+    }
+
+    // 8. Community Feed Comments
+    match /feed_comments/{commentId} {
+      // Anyone can read comments
+      allow read: if isValidId(commentId);
+      // Only authenticated users can write comments
+      allow create: if isValidId(commentId) && isSignedIn() &&
+        incoming().authorId == request.auth.uid &&
+        incoming().content is string && incoming().content.size() <= 1000;
+      // Admin or comment author can delete
+      allow delete: if isValidId(commentId) && (isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid));
+    }
+
+    // 9. Public User Profiles (Avatar & Bio)
+    match /user_profiles/{userId} {
+      // Anyone can visit and view user profiles
+      allow read: if isValidId(userId);
+      // Only profile owner or admin can update avatar and profile info
+      allow write: if isValidId(userId) && (isAdmin() || (isSignedIn() && request.auth.uid == userId));
+    }
   }
 }
