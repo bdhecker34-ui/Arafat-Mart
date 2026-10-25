@@ -20,6 +20,7 @@ import { SmartBudgetModal } from './components/SmartBudgetModal';
 import { ProductShareModal, getProductShareUrl } from './components/ProductShareModal';
 import { CustomerWishModal } from './components/CustomerWishModal';
 import { CommunityFeed } from './components/CommunityFeed';
+import { PWAInstallModal } from './components/PWAInstallModal';
 
 import { AdminSetup } from './admin/AdminSetup';
 import { AdminLogin } from './admin/AdminLogin';
@@ -96,6 +97,7 @@ export default function App() {
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [sharingProduct, setSharingProduct] = useState<Product | null>(null);
   const [hasHandledInitialDeepLink, setHasHandledInitialDeepLink] = useState(false);
+  const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
 
   // Customer Authentication & Account States
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -990,6 +992,13 @@ export default function App() {
             }}
           />
         )}
+
+        {/* PWA App Installation Popup System */}
+        <PWAInstallModal
+          language={language}
+          isOpenManual={isPWAInstallModalOpen}
+          onCloseManual={() => setIsPWAInstallModalOpen(false)}
+        />
       </div>
     );
   }
@@ -1062,6 +1071,7 @@ export default function App() {
         onOpenSmartBudget={() => setIsSmartBudgetOpen(true)}
         onOpenCustomerWishModal={() => setIsCustomerWishModalOpen(true)}
         onOpenFeed={() => setCurrentView('feed')}
+        onOpenInstallApp={() => setIsPWAInstallModalOpen(true)}
         onOpenAdmin={openAdminConsole}
         currentUser={currentUser}
         onOpenAuth={() => {
@@ -1654,6 +1664,13 @@ export default function App() {
         language={language}
         onSubmitWish={handleCustomerWishSubmit}
         whatsappNumber={storeContent.contact?.whatsapp}
+      />
+
+      {/* PWA App Installation Popup System */}
+      <PWAInstallModal
+        language={language}
+        isOpenManual={isPWAInstallModalOpen}
+        onCloseManual={() => setIsPWAInstallModalOpen(false)}
       />
 
       {/* Floating WhatsApp Quick Contact Button (Positioned on the Right side) */}

@@ -9,8 +9,8 @@ createRoot(document.getElementById('root')!).render(
   </ErrorBoundary>
 );
 
-// Register service worker for Android PWA installation
-if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+// Register service worker for PWA installation
+if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {
       // ignore

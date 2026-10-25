@@ -20,7 +20,8 @@ import {
   Globe,
   HeartHandshake,
   Users,
-  MessageSquare
+  MessageSquare,
+  Download
 } from 'lucide-react';
 import { ProductCategory } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,6 +43,7 @@ interface HeaderProps {
   onOpenSmartBudget?: () => void;
   onOpenCustomerWishModal?: () => void;
   onOpenFeed?: () => void;
+  onOpenInstallApp?: () => void;
   onOpenAdmin?: () => void;
   currentUser?: { displayName?: string | null; email?: string | null; uid?: string } | null;
   onOpenAuth: () => void;
@@ -71,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSmartBudget,
   onOpenCustomerWishModal,
   onOpenFeed,
+  onOpenInstallApp,
   onOpenAdmin,
   currentUser,
   onOpenAuth,
@@ -508,6 +511,35 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
                       </button>
+
+                      {/* Install Easy Mart PWA App */}
+                      {onOpenInstallApp && (
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onOpenInstallApp();
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xs transition-all border border-transparent hover:border-emerald-300/40 dark:hover:border-emerald-800/50 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 group-hover:scale-105 transition-transform">
+                              <Smartphone className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="font-bold flex items-center gap-1.5">
+                                <span>{language === 'bn' ? 'Easy Mart অ্যাপ ইনস্টল' : 'Install Easy Mart App'}</span>
+                                <span className="text-[9px] px-1.5 py-0.2 bg-emerald-600 text-white font-black rounded-full">
+                                  PWA
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-stone-500 dark:text-stone-400">
+                                {language === 'bn' ? '১-ক্লিকে ফোনে অ্যাপ হিসেবে যুক্ত করুন' : 'Add to home screen for fast shopping'}
+                              </div>
+                            </div>
+                          </div>
+                          <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover:translate-y-0.5 transition-transform" />
+                        </button>
+                      )}
                     </div>
 
                     {/* Language & Dark/Light Mode Preferences Strip */}
