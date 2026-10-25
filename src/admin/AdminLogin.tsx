@@ -23,8 +23,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
     setError(null);
     setLoading(true);
 
-    if (email.trim().toLowerCase() !== 'bdhecker34@gmail.com') {
-      setError('অননুমোদিত ইমেইল! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) এর জন্য এই প্যানেল সংরক্ষিত।');
+    const cleanInputEmail = email.trim().toLowerCase();
+    const authorizedAdminEmails = ['bdhecker34@gmail.com', 'ashik140267@gmail.com'];
+
+    if (!authorizedAdminEmails.includes(cleanInputEmail)) {
+      setError('অননুমোদিত ইমেইল! শুধুমাত্র প্রধান অ্যাডমিনদের জন্য এই প্যানেল সংরক্ষিত।');
       setLoading(false);
       return;
     }
@@ -52,13 +55,13 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onCancel
       const user = result.user;
       if (user && user.email) {
         const emailLower = user.email.toLowerCase().trim();
-        const configuredEmail = adminApi.getAdminEmail()?.toLowerCase().trim();
+        const authorizedAdminEmails = ['bdhecker34@gmail.com', 'ashik140267@gmail.com'];
         
-        // Strict Authorization: ONLY allow bdhecker34@gmail.com
-        const isAuthorized = emailLower === 'bdhecker34@gmail.com';
+        // Strict Authorization: allow bdhecker34@gmail.com or ashik140267@gmail.com
+        const isAuthorized = authorizedAdminEmails.includes(emailLower);
 
         if (!isAuthorized) {
-          setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) এই প্যানেলে প্রবেশ করতে পারবেন।`);
+          setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র অনুমোদিত অ্যাডমিন এই প্যানেলে প্রবেশ করতে পারবেন।`);
           await signOut(auth);
           return;
         }

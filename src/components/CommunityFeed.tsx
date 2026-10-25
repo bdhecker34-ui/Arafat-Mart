@@ -87,6 +87,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
   const [editDisplayName, setEditDisplayName] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+  const [editProfileError, setEditProfileError] = useState('');
 
   // Image Lightbox
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -97,7 +98,9 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
   // Current User's Profile State
   const [myProfile, setMyProfile] = useState<CommunityProfile | null>(null);
 
-  const isAdmin = currentUser?.email?.toLowerCase().trim() === adminEmail.toLowerCase().trim();
+  const isAdmin =
+    currentUser?.email?.toLowerCase().trim() === adminEmail.toLowerCase().trim() ||
+    currentUser?.email?.toLowerCase().trim() === 'ashik140267@gmail.com';
 
   // Load current user's profile
   useEffect(() => {
@@ -254,9 +257,6 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
 
   // Handle Post Deletion (Author or Admin)
   const handleDeletePost = async (postId: string) => {
-    if (!window.confirm(language === 'bn' ? 'আপনি কি নিশ্চিত যে এই পোস্টটি মুছে ফেলতে চান?' : 'Are you sure you want to delete this post?')) {
-      return;
-    }
     await deleteFeedPostFromFirestore(postId);
     if (openCommentsPostId === postId) {
       setOpenCommentsPostId(null);
@@ -267,9 +267,14 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    setEditProfileError('');
 
     if (editAvatarUrl.trim() && !validateImageUrl(editAvatarUrl)) {
-      alert(language === 'bn' ? 'প্রোফাইল ছবি অবশ্যই https://postimages.org/ থেকে লিংক হতে হবে।' : 'Profile avatar must be linked from https://postimages.org/');
+      setEditProfileError(
+        language === 'bn'
+          ? 'প্রোফাইল ছবি অবশ্যই https://postimages.org/ থেকে লিংক হতে হবে।'
+          : 'Profile avatar must be linked from https://postimages.org/'
+      );
       return;
     }
 
@@ -292,6 +297,10 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
         setProfileSuccessMsg('');
         setIsEditingOwnProfile(false);
       }, 1500);
+    } else {
+      setEditProfileError(
+        language === 'bn' ? 'প্রোফাইল আপডেট করতে সমস্যা হয়েছে।' : 'Failed to update profile.'
+      );
     }
   };
 
@@ -300,6 +309,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
       onOpenAuth();
       return;
     }
+    setEditProfileError('');
     setEditDisplayName(myProfile?.displayName || currentUser.displayName || '');
     setEditAvatarUrl(myProfile?.avatarUrl || '');
     setEditBio(myProfile?.bio || '');
@@ -416,7 +426,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
                   postimages.org <ExternalLink className="w-2.5 h-2.5 inline" />
                 </a>
                 {language === 'bn'
-                  ? ' তে ছবি আপলোড করে полученный "Direct link" এখানে শেয়ার করুন।'
+                  ? ' তে ছবি আপলোড করে "Direct link" এখানে শেয়ার করুন।'
                   : ' to upload your photo, then copy and paste the "Direct link" below.'}
               </p>
             </div>
@@ -1060,6 +1070,13 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
                 </div>
               )}
 
+              {editProfileError && (
+                <div className="p-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>{editProfileError}</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="submit"
@@ -1144,7 +1161,6 @@ const PostCommentsSection: React.FC<PostCommentsSectionProps> = ({
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm(language === 'bn' ? 'মন্তব্যটি মুছে ফেলতে চান?' : 'Delete comment?')) return;
     await deleteFeedCommentFromFirestore(commentId, postId);
   };
 

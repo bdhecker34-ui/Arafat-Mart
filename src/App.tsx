@@ -406,8 +406,8 @@ export default function App() {
     try {
       if (adminApi.isAuthenticated()) {
         const email = adminApi.getAdminEmail()?.trim().toLowerCase();
-        if (email === 'bdhecker34@gmail.com') {
-          setAdminEmail('bdhecker34@gmail.com');
+        if (email === 'bdhecker34@gmail.com' || email === 'ashik140267@gmail.com') {
+          setAdminEmail(email);
           setCurrentView('admin-dashboard');
           window.location.hash = 'admin';
           return;

@@ -119,8 +119,9 @@ app.post('/api/admin/setup', (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  if (cleanEmail !== 'bdhecker34@gmail.com') {
-    return res.status(403).json({ error: 'Access denied: Only bdhecker34@gmail.com is authorized.' });
+  const AUTHORIZED_ADMIN_EMAILS = ['bdhecker34@gmail.com', 'ashik140267@gmail.com'];
+  if (!AUTHORIZED_ADMIN_EMAILS.includes(cleanEmail)) {
+    return res.status(403).json({ error: 'Access denied: Only authorized administrator emails are permitted.' });
   }
 
   if (password.length < 8) {
@@ -185,8 +186,9 @@ app.post('/api/admin/login', (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  if (cleanEmail !== 'bdhecker34@gmail.com') {
-    return res.status(403).json({ error: 'Access denied: Only bdhecker34@gmail.com is authorized.' });
+  const AUTHORIZED_ADMIN_EMAILS = ['bdhecker34@gmail.com', 'ashik140267@gmail.com'];
+  if (!AUTHORIZED_ADMIN_EMAILS.includes(cleanEmail)) {
+    return res.status(403).json({ error: 'Access denied: Only authorized administrator emails are permitted.' });
   }
 
   try {

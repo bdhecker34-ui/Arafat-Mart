@@ -589,7 +589,29 @@ export function subscribeFeedPosts(
 
       // Filter out any demo posts that might already exist in Firestore
       const liveIds = new Set(livePosts.map((p) => p.id));
-      const remainingDemos = DEFAULT_DEMO_FEED_POSTS.filter((demo) => !liveIds.has(demo.id));
+      let remainingDemos = DEFAULT_DEMO_FEED_POSTS.filter((demo) => !liveIds.has(demo.id));
+      try {
+        const deletedSaved = localStorage.getItem('arafat_mart_deleted_demo_posts');
+        if (deletedSaved) {
+          const deletedIds = new Set(JSON.parse(deletedSaved));
+          remainingDemos = remainingDemos.filter((d) => !deletedIds.has(d.id));
+        }
+        const demoLikesSaved = localStorage.getItem('arafat_mart_demo_likes');
+        if (demoLikesSaved) {
+          const demoLikesMap = JSON.parse(demoLikesSaved);
+          remainingDemos = remainingDemos.map((d) => {
+            if (demoLikesMap[d.id]) {
+              const updatedLikes = demoLikesMap[d.id];
+              return {
+                ...d,
+                likes: updatedLikes,
+                likesCount: updatedLikes.length,
+              };
+            }
+            return d;
+          });
+        }
+      } catch {}
 
       // Combine live user posts on top, followed by rich demo posts
       const combined = [...livePosts, ...remainingDemos];
@@ -599,8 +621,13 @@ export function subscribeFeedPosts(
       console.warn('Feed posts subscription note:', error);
       // Fallback to rich demo posts on network/permission note
       onPosts(DEFAULT_DEMO_FEED_POSTS);
-      if (onError) onError(error);
-      else handleFirestoreError(error, OperationType.GET, path);
+      if (onError) {
+        onError(error);
+      } else {
+        try {
+          handleFirestoreError(error, OperationType.GET, path);
+        } catch {}
+      }
     }
   );
 }
@@ -637,7 +664,9 @@ export async function createFeedPostInFirestore(params: {
     await setDoc(postRef, postPayload);
     return { success: true, id: postId };
   } catch (error: any) {
-    handleFirestoreError(error, OperationType.CREATE, path);
+    try {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    } catch {}
     return { success: false, error: error?.message || 'Failed to publish post' };
   }
 }
@@ -650,6 +679,19 @@ export async function toggleLikeFeedPostInFirestore(
   userId: string,
   currentlyLiked: boolean
 ): Promise<boolean> {
+  if (postId.startsWith('demo_')) {
+    try {
+      const saved = localStorage.getItem('arafat_mart_demo_likes');
+      const likesMap: Record<string, string[]> = saved ? JSON.parse(saved) : {};
+      const original = DEFAULT_DEMO_FEED_POSTS.find((p) => p.id === postId)?.likes || [];
+      const currentList = likesMap[postId] !== undefined ? likesMap[postId] : original;
+      const updatedList = currentlyLiked ? currentList.filter((id) => id !== userId) : [...currentList, userId];
+      likesMap[postId] = updatedList;
+      localStorage.setItem('arafat_mart_demo_likes', JSON.stringify(likesMap));
+    } catch {}
+    return true;
+  }
+
   const path = `feed_posts/${postId}`;
   try {
     const postRef = doc(db, 'feed_posts', postId);
@@ -663,7 +705,9 @@ export async function toggleLikeFeedPostInFirestore(
     );
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, path);
+    try {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    } catch {}
     return false;
   }
 }
@@ -701,7 +745,17 @@ export function subscribePostComments(
         });
       });
 
-      const demoCommentsForPost = DEFAULT_DEMO_COMMENTS[postId] || [];
+      const demoCommentsForPost = (() => {
+        try {
+          const saved = localStorage.getItem('arafat_mart_demo_comments');
+          if (saved) {
+            const commentsMap = JSON.parse(saved);
+            if (commentsMap[postId]) return commentsMap[postId] as FeedComment[];
+          }
+        } catch {}
+        return DEFAULT_DEMO_COMMENTS[postId] || [];
+      })();
+
       const liveIds = new Set(liveComments.map((c) => c.id));
       const remainingDemoComments = demoCommentsForPost.filter((c) => !liveIds.has(c.id));
 
@@ -709,9 +763,24 @@ export function subscribePostComments(
     },
     (error) => {
       console.warn(`Comments subscription note for post ${postId}:`, error);
-      onComments(DEFAULT_DEMO_COMMENTS[postId] || []);
-      if (onError) onError(error);
-      else handleFirestoreError(error, OperationType.GET, path);
+      const demoComments = (() => {
+        try {
+          const saved = localStorage.getItem('arafat_mart_demo_comments');
+          if (saved) {
+            const commentsMap = JSON.parse(saved);
+            if (commentsMap[postId]) return commentsMap[postId] as FeedComment[];
+          }
+        } catch {}
+        return DEFAULT_DEMO_COMMENTS[postId] || [];
+      })();
+      onComments(demoComments);
+      if (onError) {
+        onError(error);
+      } else {
+        try {
+          handleFirestoreError(error, OperationType.GET, path);
+        } catch {}
+      }
     }
   );
 }
@@ -726,6 +795,28 @@ export async function addFeedCommentInFirestore(params: {
   authorAvatar?: string;
   content: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
+  if (params.postId.startsWith('demo_')) {
+    try {
+      const saved = localStorage.getItem('arafat_mart_demo_comments');
+      const commentsMap: Record<string, FeedComment[]> = saved ? JSON.parse(saved) : {};
+      const existing = commentsMap[params.postId] || DEFAULT_DEMO_COMMENTS[params.postId] || [];
+      const newComment: FeedComment = {
+        id: `demo_user_comm_${Date.now()}`,
+        postId: params.postId,
+        authorId: params.authorId,
+        authorName: params.authorName,
+        authorAvatar: params.authorAvatar || '',
+        content: params.content.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      commentsMap[params.postId] = [...existing, newComment];
+      localStorage.setItem('arafat_mart_demo_comments', JSON.stringify(commentsMap));
+      return { success: true, id: newComment.id };
+    } catch {
+      return { success: true };
+    }
+  }
+
   const commentId = `comment_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const path = `feed_comments/${commentId}`;
   try {
@@ -752,7 +843,9 @@ export async function addFeedCommentInFirestore(params: {
 
     return { success: true, id: commentId };
   } catch (error: any) {
-    handleFirestoreError(error, OperationType.CREATE, path);
+    try {
+      handleFirestoreError(error, OperationType.CREATE, path);
+    } catch {}
     return { success: false, error: error?.message || 'Failed to add comment' };
   }
 }
@@ -761,13 +854,27 @@ export async function addFeedCommentInFirestore(params: {
  * Delete a post (by Author or Admin)
  */
 export async function deleteFeedPostFromFirestore(postId: string): Promise<boolean> {
+  if (postId.startsWith('demo_')) {
+    try {
+      const saved = localStorage.getItem('arafat_mart_deleted_demo_posts');
+      const deleted: string[] = saved ? JSON.parse(saved) : [];
+      if (!deleted.includes(postId)) {
+        deleted.push(postId);
+        localStorage.setItem('arafat_mart_deleted_demo_posts', JSON.stringify(deleted));
+      }
+    } catch {}
+    return true;
+  }
+
   const path = `feed_posts/${postId}`;
   try {
     const postRef = doc(db, 'feed_posts', postId);
     await deleteDoc(postRef);
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
+    try {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    } catch {}
     return false;
   }
 }
@@ -776,6 +883,20 @@ export async function deleteFeedPostFromFirestore(postId: string): Promise<boole
  * Delete a comment (by Author or Admin)
  */
 export async function deleteFeedCommentFromFirestore(commentId: string, postId: string): Promise<boolean> {
+  if (postId.startsWith('demo_')) {
+    try {
+      const saved = localStorage.getItem('arafat_mart_demo_comments');
+      if (saved) {
+        const commentsMap: Record<string, FeedComment[]> = JSON.parse(saved);
+        if (commentsMap[postId]) {
+          commentsMap[postId] = commentsMap[postId].filter((c) => c.id !== commentId);
+          localStorage.setItem('arafat_mart_demo_comments', JSON.stringify(commentsMap));
+        }
+      }
+    } catch {}
+    return true;
+  }
+
   const path = `feed_comments/${commentId}`;
   try {
     const commentRef = doc(db, 'feed_comments', commentId);
@@ -791,7 +912,9 @@ export async function deleteFeedCommentFromFirestore(commentId: string, postId: 
 
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, path);
+    try {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    } catch {}
     return false;
   }
 }
@@ -809,7 +932,9 @@ export async function getCommunityProfileFromFirestore(userId: string): Promise<
     }
     return null;
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, path);
+    try {
+      handleFirestoreError(error, OperationType.GET, path);
+    } catch {}
     return null;
   }
 }
@@ -830,7 +955,9 @@ export async function saveCommunityProfileToFirestore(
     await setDoc(docRef, payload, { merge: true });
     return true;
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, path);
+    try {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    } catch {}
     return false;
   }
 }
