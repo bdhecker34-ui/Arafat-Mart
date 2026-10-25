@@ -28,6 +28,7 @@ import {
   Edit3,
   ThumbsUp,
   MessageSquare,
+  Newspaper,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FeedPost, FeedComment, CommunityProfile } from '../types';
@@ -40,6 +41,7 @@ import {
   deleteFeedCommentFromFirestore,
   getCommunityProfileFromFirestore,
   saveCommunityProfileToFirestore,
+  DEFAULT_DEMO_FEED_POSTS,
 } from '../services/firestoreService';
 
 interface CommunityFeedProps {
@@ -141,16 +143,22 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
       .finally(() => setIsLoadingProfile(false));
   }, [viewingProfileUserId, posts]);
 
+  // Effective posts: use provided posts or fallback to rich demo posts
+  const effectivePosts = useMemo(() => {
+    if (posts && posts.length > 0) return posts;
+    return DEFAULT_DEMO_FEED_POSTS;
+  }, [posts]);
+
   // Sort & Filter Posts
   const filteredPosts = useMemo(() => {
-    let list = [...posts];
+    let list = [...effectivePosts];
     if (activeFilter === 'photos') {
       list = list.filter((p) => Boolean(p.imageUrl && p.imageUrl.trim().length > 0));
     } else if (activeFilter === 'popular') {
       list.sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0));
     }
     return list;
-  }, [posts, activeFilter]);
+  }, [effectivePosts, activeFilter]);
 
   // Validate Postimages.org URL or general image URL
   const validateImageUrl = (url: string) => {
@@ -300,7 +308,7 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-sans pb-24">
-      {/* Facebook-style Top Navigation Bar */}
+      {/* Easy Mart News Feed Top Navigation Bar */}
       <header className="sticky top-0 z-40 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 shadow-xs">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
           {/* Back & Logo */}
@@ -314,19 +322,19 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
               <span className="hidden sm:inline">{language === 'bn' ? 'মার্কেটপ্লেসে ফিরুন' : 'Back to Shop'}</span>
             </button>
 
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-[#1877F2] text-white flex items-center justify-center font-black text-xl shadow-xs">
-                f
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black shadow-xs">
+                <Newspaper className="w-5 h-5" />
               </div>
               <div>
                 <h1 className="text-base sm:text-lg font-black tracking-tight leading-tight text-stone-900 dark:text-white flex items-center gap-1.5">
-                  <span>Easy Mart Feed</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-[#1877F2] font-bold">
-                    কমিউনিটি
+                  <span>Easy Mart News Feed</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold">
+                    {language === 'bn' ? 'নিউজ ফিড' : 'News Feed'}
                   </span>
                 </h1>
                 <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                  {language === 'bn' ? 'পোস্ট করুন, লাইক ও মতামত দিন' : 'Share stories, photos & connect'}
+                  {language === 'bn' ? 'কাস্টমার অভিজ্ঞতা, রিভিউ ও আনবক্সিং ফটো' : 'Customer reviews, stories & unboxing photos'}
                 </p>
               </div>
             </div>
@@ -512,11 +520,11 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
                     onChange={(e) => setCaption(e.target.value)}
                     placeholder={
                       language === 'bn'
-                        ? `আপনার মনে কী চলছে, ${myProfile?.displayName || currentUser.displayName || 'বন্ধু'}?`
-                        : `What's on your mind, ${myProfile?.displayName || currentUser.displayName || 'friend'}?`
+                        ? `Easy Mart News Feed-এ আপনার রিভিউ বা অভিজ্ঞতা শেয়ার করুন, ${myProfile?.displayName || currentUser.displayName || 'বন্ধু'}...`
+                        : `Share your review or experience on Easy Mart News Feed, ${myProfile?.displayName || currentUser.displayName || 'friend'}...`
                     }
                     rows={3}
-                    className="w-full text-sm bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-700 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-stone-900 dark:text-white placeholder-stone-400 resize-none"
+                    className="w-full text-sm bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-700 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-stone-900 dark:text-white placeholder-stone-400 resize-none"
                   />
 
                   {/* Image URL input from postimages.org */}
@@ -605,10 +613,10 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-stone-800 dark:text-stone-200">
-                    {language === 'bn' ? 'কমিউনিটিতে যুক্ত হতে সাইন আপ বা লগইন করুন' : 'Sign up or login to share your post'}
+                    {language === 'bn' ? 'Easy Mart News Feed-এ পোস্ট করতে সাইন আপ বা লগইন করুন' : 'Sign up or login to share your post on Easy Mart News Feed'}
                   </h4>
                   <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                    {language === 'bn' ? 'ছবি ও ক্যাপশন পোস্ট করুন, লাইক ও কমেন্ট দিন' : 'Share photos via postimages.org, like and comment'}
+                    {language === 'bn' ? 'ছবি ও ক্যাপশন পোস্ট করুন, লাইক ও মন্তব্য দিন' : 'Share photos via postimages.org, like and comment'}
                   </p>
                 </div>
               </div>
@@ -667,12 +675,12 @@ export const CommunityFeed: React.FC<CommunityFeedProps> = ({
                 <MessageSquare className="w-8 h-8" />
               </div>
               <h3 className="text-base font-bold text-stone-800 dark:text-stone-200">
-                {language === 'bn' ? 'এখনো কোনো পোস্ট নেই' : 'No posts yet'}
+                {language === 'bn' ? 'এখনো কোনো পোস্ট পাওয়া যায়নি' : 'No posts found'}
               </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
                 {language === 'bn'
-                  ? 'প্রথম ব্যক্তি হিসেবে আপনার মতামত অথবা পছন্দের ছবি (postimages.org লিংক দিয়ে) পোস্ট করুন!'
-                  : 'Be the first to share a post with your friends in Easy Mart!'}
+                  ? 'Easy Mart News Feed-এ আপনার রিভিউ অথবা পছন্দের ছবি (postimages.org লিংক দিয়ে) পোস্ট করুন!'
+                  : 'Share your review or photo via postimages.org on Easy Mart News Feed!'}
               </p>
             </div>
           ) : (

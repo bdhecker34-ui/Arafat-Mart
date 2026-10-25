@@ -19,6 +19,7 @@ import { CustomerAccountModal } from './components/CustomerAccountModal';
 import { SmartBudgetModal } from './components/SmartBudgetModal';
 import { ProductShareModal, getProductShareUrl } from './components/ProductShareModal';
 import { CustomerWishModal } from './components/CustomerWishModal';
+import { CommunityFeed } from './components/CommunityFeed';
 
 import { AdminSetup } from './admin/AdminSetup';
 import { AdminLogin } from './admin/AdminLogin';
@@ -33,11 +34,13 @@ import {
   subscribeCustomerWishes,
   updateCustomerWishStatusInFirestore,
   deleteCustomerWishFromFirestore,
+  subscribeFeedPosts,
+  deleteFeedPostFromFirestore,
 } from './services/firestoreService';
 import { testConnection, auth, signOut, onAuthStateChanged, User } from './firebase';
 
 import { BANGLADESH_DIVISIONS } from './data/bangladeshDistricts';
-import { Product, ProductCategory, CartItem, Order, CustomerWish, WishStatus } from './types';
+import { Product, ProductCategory, CartItem, Order, CustomerWish, WishStatus, FeedPost } from './types';
 import {
   SlidersHorizontal,
   Check,
@@ -63,7 +66,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
-type ViewMode = 'store' | 'admin-setup' | 'admin-login' | 'admin-dashboard';
+type ViewMode = 'store' | 'admin-setup' | 'admin-login' | 'admin-dashboard' | 'feed';
 
 export default function App() {
   // Navigation & View Mode State
@@ -90,6 +93,7 @@ export default function App() {
   const [isSmartBudgetOpen, setIsSmartBudgetOpen] = useState(false);
   const [isCustomerWishModalOpen, setIsCustomerWishModalOpen] = useState(false);
   const [customerWishes, setCustomerWishes] = useState<CustomerWish[]>([]);
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [sharingProduct, setSharingProduct] = useState<Product | null>(null);
   const [hasHandledInitialDeepLink, setHasHandledInitialDeepLink] = useState(false);
 
@@ -371,9 +375,28 @@ export default function App() {
       }
     );
 
+    // 5. Real-time community feed subscription
+    const unsubscribeFeed = subscribeFeedPosts(
+      (posts) => {
+        setFeedPosts(posts);
+      },
+      (err) => {
+        console.warn('Feed subscription note:', err);
+      }
+    );
+
+    // Deep-link check for Community Feed
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === 'feed' || urlParams.has('post') || window.location.hash === '#feed') {
+        setCurrentView('feed');
+      }
+    } catch {}
+
     return () => {
       unsubscribe();
       unsubscribeWishes();
+      unsubscribeFeed();
     };
   }, []);
 
@@ -871,10 +894,14 @@ export default function App() {
         content={storeContent}
         orders={orders}
         customerWishes={customerWishes}
+        feedPosts={feedPosts}
         onUpdateContent={handleUpdateContent}
         onUpdateOrders={handleUpdateOrders}
         onUpdateWishStatus={handleUpdateCustomerWishStatus}
         onDeleteWish={handleDeleteCustomerWish}
+        onDeleteFeedPost={async (postId) => {
+          return await deleteFeedPostFromFirestore(postId);
+        }}
         onLogout={handleAdminLogout}
         onViewStore={() => {
           setCurrentView('store');
@@ -907,6 +934,63 @@ export default function App() {
           window.location.hash = '';
         }}
       />
+    );
+  }
+
+  // ================= EASY MART NEWS FEED =================
+  if (currentView === 'feed') {
+    return (
+      <div className="min-h-screen bg-[#F0F2F5] dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans">
+        <CommunityFeed
+          currentUser={currentUser}
+          posts={feedPosts}
+          language={language}
+          onBackToStore={() => {
+            setCurrentView('store');
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('view');
+              url.searchParams.delete('post');
+              window.history.replaceState({}, '', url.toString());
+            } catch {}
+          }}
+          onOpenAuth={() => {
+            setAuthModalMode('login');
+            setIsAuthModalOpen(true);
+          }}
+          adminEmail="bdhecker34@gmail.com"
+        />
+
+        {/* Customer Auth & Account Modals */}
+        {isAuthModalOpen && (
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            defaultMode={authModalMode}
+            onClose={() => setIsAuthModalOpen(false)}
+            onSuccess={() => {
+              setIsAuthModalOpen(false);
+              showToast('স্বাগতম! আপনি সফলভাবে লগইন করেছেন');
+            }}
+          />
+        )}
+        {isAccountModalOpen && currentUser && (
+          <CustomerAccountModal
+            isOpen={isAccountModalOpen}
+            user={currentUser}
+            onClose={() => setIsAccountModalOpen(false)}
+            onTrackOrder={(orderId) => {
+              setIsAccountModalOpen(false);
+              setTrackingOrderId(orderId);
+              setIsTrackOrderOpen(true);
+            }}
+            onLogout={async () => {
+              await signOut(auth);
+              setIsAccountModalOpen(false);
+              showToast('আপনি সফলভাবে লগআউট করেছেন');
+            }}
+          />
+        )}
+      </div>
     );
   }
 
@@ -977,6 +1061,7 @@ export default function App() {
         }}
         onOpenSmartBudget={() => setIsSmartBudgetOpen(true)}
         onOpenCustomerWishModal={() => setIsCustomerWishModalOpen(true)}
+        onOpenFeed={() => setCurrentView('feed')}
         onOpenAdmin={openAdminConsole}
         currentUser={currentUser}
         onOpenAuth={() => {

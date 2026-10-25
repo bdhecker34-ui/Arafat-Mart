@@ -41,6 +41,7 @@ interface HeaderProps {
   onOpenTrackOrder: () => void;
   onOpenSmartBudget?: () => void;
   onOpenCustomerWishModal?: () => void;
+  onOpenFeed?: () => void;
   onOpenAdmin?: () => void;
   currentUser?: { displayName?: string | null; email?: string | null; uid?: string } | null;
   onOpenAuth: () => void;
@@ -69,6 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTrackOrder,
   onOpenSmartBudget,
   onOpenCustomerWishModal,
+  onOpenFeed,
   onOpenAdmin,
   currentUser,
   onOpenAuth,
@@ -372,6 +374,39 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     )}
 
+                    {/* Easy Mart News Feed Option */}
+                    {onOpenFeed && (
+                      <div className="p-2 bg-gradient-to-r from-emerald-500/10 via-blue-500/5 to-transparent border-b border-emerald-200/60 dark:border-emerald-900/40">
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onOpenFeed();
+                          }}
+                          className="w-full flex items-center justify-between p-2.5 rounded-xl text-left bg-gradient-to-r from-stone-900 to-stone-850 hover:from-black hover:to-stone-900 text-white shadow-xs transition-all cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                              <Users className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-extrabold text-xs text-white">
+                                  Easy Mart News Feed
+                                </span>
+                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-600 text-white uppercase tracking-wider">
+                                  {language === 'bn' ? 'নিউজ ফিড' : 'News Feed'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-emerald-300/90 font-medium">
+                                {language === 'bn' ? 'কাস্টমার রিভিউ, ফটো ও অভিজ্ঞতা শেয়ার' : 'Customer reviews, photos & community stories'}
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                        </button>
+                      </div>
+                    )}
+
                     {/* Quick Access Services */}
                     <div className="p-2 space-y-1 bg-stone-50/60">
                       <div className="px-2.5 py-1 text-[11px] font-bold text-stone-500 uppercase tracking-wider">
@@ -576,8 +611,17 @@ export const Header: React.FC<HeaderProps> = ({
             </a>
           </div>
 
-          {/* Zone 2: Track Order Quick Link (Categories now in Hamburger Menu) */}
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-stone-700 dark:text-stone-300">
+          {/* Zone 2: Track Order & Community Feed Quick Links */}
+          <div className="hidden md:flex items-center gap-3 text-sm font-medium text-stone-700 dark:text-stone-300">
+            {onOpenFeed && (
+              <button
+                onClick={onOpenFeed}
+                className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold cursor-pointer"
+              >
+                <Users className="w-4 h-4" />
+                <span>Easy Mart News Feed</span>
+              </button>
+            )}
             <button
               onClick={onOpenTrackOrder}
               className="text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 dark:hover:bg-stone-800 cursor-pointer"

@@ -409,12 +409,149 @@ export async function deleteCustomerWishFromFirestore(wishId: string): Promise<b
 
 /**
  * ==========================================
- * COMMUNITY FEED & USER PROFILES (Facebook-like)
+ * EASY MART NEWS FEED & USER PROFILES
  * ==========================================
  */
 
 /**
- * Real-time listener for Community Feed Posts
+ * Rich realistic demo posts for Easy Mart News Feed
+ */
+export const DEFAULT_DEMO_FEED_POSTS: FeedPost[] = [
+  {
+    id: 'demo_post_1',
+    authorId: 'official_easymart',
+    authorName: 'Easy Mart Official',
+    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    caption: '🌟 Easy Mart News Feed-এ সবাইকে স্বাগতম! সারা বাংলাদেশে ৬৪ জেলায় দ্রুততম হোম ডেলিভারি ও ক্যাশ অন ডেলিভারিতে আসল পণ্য পৌঁছে দিতে আমরা প্রতিশ্রুতিবদ্ধ। আপনাদের কেনাকাটার অভিজ্ঞতা, আনবক্সিং ফটো এবং পণ্যের মতামত এখানে শেয়ার করতে পারেন।\n\n📌 ছবি আপলোড করার নিয়ম: https://postimages.org/ থেকে ডিরেক্ট লিংক দিয়ে পোস্ট করুন।',
+    imageUrl: 'https://i.postimg.cc/85kZ905d/banner-lifestyle.jpg',
+    likes: ['user_sample_1', 'user_sample_2', 'user_sample_3', 'user_sample_4'],
+    likesCount: 38,
+    commentsCount: 2,
+    status: 'active',
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'demo_post_2',
+    authorId: 'user_tanvir_dhaka',
+    authorName: 'তানভীর আহমেদ',
+    authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    caption: 'Easy Mart থেকে প্রিমিয়াম কটন পাঞ্জাবিটা অর্ডার করেছিলাম। মাত্র ৪৮ ঘণ্টার মাথায় ধানমন্ডিতে ডেলিভারি পেয়েছি। কাপড়ের মান ও প্রিমিয়াম ফিনিশিং সত্যিই প্রশংসনীয়! সাইজও নিখুঁত হয়েছে। যারা অর্ডার করার কথা ভাবছেন নিঃসন্দেহে নিতে পারেন। 👌✨',
+    imageUrl: 'https://i.postimg.cc/7hpF7K3v/panjabi-unboxing.jpg',
+    likes: ['user_sample_1', 'user_sample_5', 'user_sample_6'],
+    likesCount: 24,
+    commentsCount: 2,
+    status: 'active',
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'demo_post_3',
+    authorId: 'user_nusrat_ctg',
+    authorName: 'নুসরাত জাহান',
+    authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    caption: '20000mAh 22.5W ফাস্ট চার্জিং পাওয়ার ব্যাংকটা নিয়েছিলাম। অসাধারণ বিল্ড কোয়ালিটি ও সুপারফাস্ট চার্জিং সাপোর্ট। এক চার্জেই আমার ফোন টানা ৩ দিন চার্জ দেওয়া যায়। অরজিনাল গ্যাজেট দেওয়ার জন্য Easy Mart-কে ধন্যবাদ! 🔋⚡',
+    imageUrl: 'https://i.postimg.cc/KzT5fM8T/powerbank-real.jpg',
+    likes: ['user_sample_2', 'user_sample_7'],
+    likesCount: 19,
+    commentsCount: 2,
+    status: 'active',
+    createdAt: new Date(Date.now() - 11 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'demo_post_4',
+    authorId: 'user_sadia_syl',
+    authorName: 'সাদিয়া ইসলাম',
+    authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    caption: 'Easy Mart-এর কাস্টমার কেয়ার সার্ভিস সত্যিই দারুণ। ডেলিভারি ট্র্যাক করা অনেক সহজ এবং ডেলিভারিম্যানের ব্যবহারও খুব ভদ্র ছিল। আশা করি আপনারা অর্গানিক স্কিন কেয়ারের কিছু প্রোডাক্টও শীঘ্রই যোগ করবেন! ❤️🛍️',
+    imageUrl: '',
+    likes: ['user_sample_3', 'user_sample_8', 'user_sample_9'],
+    likesCount: 31,
+    commentsCount: 0,
+    status: 'active',
+    createdAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'demo_post_5',
+    authorId: 'user_rafiq_raj',
+    authorName: 'মোঃ রফিকুল ইসলাম',
+    authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    caption: 'স্মার্ট স্পোর্টস ওয়াটারপ্রুফ ওয়াচটা হাতে পেয়ে বেশ খুশি। ব্যাটারি ব্যাকআপ দারুণ আর ওয়াটারপ্রুফ টেস্টেও শতভাগ পাস। দাম অনুযায়ী এই সেগমেন্টে সেরা চয়েস।',
+    imageUrl: 'https://i.postimg.cc/W34k1s4m/watch-review.jpg',
+    likes: ['user_sample_1', 'user_sample_4'],
+    likesCount: 16,
+    commentsCount: 0,
+    status: 'active',
+    createdAt: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
+  },
+];
+
+/**
+ * Realistic demo comments for demo posts
+ */
+export const DEFAULT_DEMO_COMMENTS: Record<string, FeedComment[]> = {
+  demo_post_1: [
+    {
+      id: 'demo_comm_1_1',
+      postId: 'demo_post_1',
+      authorId: 'user_kamrul',
+      authorName: 'কামরুল হাসান',
+      authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+      content: 'মাশাআল্লাহ অনেক সুন্দর উদ্যোগ! চট্টগ্রাম শহরে হোম ডেলিভারি পেতে কতদিন সময় লাগে?',
+      createdAt: new Date(Date.now() - 1.5 * 3600 * 1000).toISOString(),
+    },
+    {
+      id: 'demo_comm_1_2',
+      postId: 'demo_post_1',
+      authorId: 'official_easymart',
+      authorName: 'Easy Mart Official',
+      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      content: 'ধন্যবাদ কামরুল ভাই! চট্টগ্রামে সাধারণত ৪৮ ঘণ্টার মধ্যে হোম ডেলিভারি পৌঁছে দেওয়া হয়। ক্যাশ অন ডেলিভারিতে চেক করে মূল্য পরিশোধ করতে পারবেন।',
+      createdAt: new Date(Date.now() - 1.2 * 3600 * 1000).toISOString(),
+    },
+  ],
+  demo_post_2: [
+    {
+      id: 'demo_comm_2_1',
+      postId: 'demo_post_2',
+      authorId: 'user_sajid',
+      authorName: 'সাজিদ মাহমুদ',
+      authorAvatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&auto=format&fit=crop&q=80',
+      content: 'পাঞ্জাবির ফেব্রিক কি ১০০% প্রিমিয়াম সুতি? গরমে পরে স্বস্তি পাওয়া যায়?',
+      createdAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+    },
+    {
+      id: 'demo_comm_2_2',
+      postId: 'demo_post_2',
+      authorId: 'user_tanvir_dhaka',
+      authorName: 'তানভীর আহমেদ',
+      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+      content: 'হ্যাঁ ভাই, একদম পিওর প্রিমিয়াম কটন। গরমে পরার জন্য খুবই আরামদায়ক ও ব্রেথেবল।',
+      createdAt: new Date(Date.now() - 3.8 * 3600 * 1000).toISOString(),
+    },
+  ],
+  demo_post_3: [
+    {
+      id: 'demo_comm_3_1',
+      postId: 'demo_post_3',
+      authorId: 'user_imran',
+      authorName: 'ইমরান হোসেন',
+      authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop&q=80',
+      content: 'আইফোন কি ফাস্ট চার্জ হয় এটা দিয়ে?',
+      createdAt: new Date(Date.now() - 9 * 3600 * 1000).toISOString(),
+    },
+    {
+      id: 'demo_comm_3_2',
+      postId: 'demo_post_3',
+      authorId: 'user_nusrat_ctg',
+      authorName: 'নুসরাত জাহান',
+      authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+      content: 'হ্যাঁ, টাইপ-সি পিডি আউটপুট দিয়ে ৫০% চার্জ মাত্র ৩০ মিনিটে হয়ে যায়। বক্সের সাথে ওয়ারেন্টি কার্ডও পেয়েছি।',
+      createdAt: new Date(Date.now() - 8.5 * 3600 * 1000).toISOString(),
+    },
+  ],
+};
+
+/**
+ * Real-time listener for Easy Mart News Feed Posts
  */
 export function subscribeFeedPosts(
   onPosts: (posts: FeedPost[]) => void,
@@ -431,10 +568,10 @@ export function subscribeFeedPosts(
   return onSnapshot(
     q,
     (snapshot) => {
-      const posts: FeedPost[] = [];
+      const livePosts: FeedPost[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        posts.push({
+        livePosts.push({
           id: docSnap.id,
           authorId: data.authorId || '',
           authorName: data.authorName || 'Community Member',
@@ -449,10 +586,19 @@ export function subscribeFeedPosts(
           updatedAt: data.updatedAt,
         });
       });
-      onPosts(posts);
+
+      // Filter out any demo posts that might already exist in Firestore
+      const liveIds = new Set(livePosts.map((p) => p.id));
+      const remainingDemos = DEFAULT_DEMO_FEED_POSTS.filter((demo) => !liveIds.has(demo.id));
+
+      // Combine live user posts on top, followed by rich demo posts
+      const combined = [...livePosts, ...remainingDemos];
+      onPosts(combined);
     },
     (error) => {
       console.warn('Feed posts subscription note:', error);
+      // Fallback to rich demo posts on network/permission note
+      onPosts(DEFAULT_DEMO_FEED_POSTS);
       if (onError) onError(error);
       else handleFirestoreError(error, OperationType.GET, path);
     }
@@ -541,10 +687,10 @@ export function subscribePostComments(
   return onSnapshot(
     q,
     (snapshot) => {
-      const comments: FeedComment[] = [];
+      const liveComments: FeedComment[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        comments.push({
+        liveComments.push({
           id: docSnap.id,
           postId: data.postId,
           authorId: data.authorId,
@@ -554,10 +700,16 @@ export function subscribePostComments(
           createdAt: data.createdAt,
         });
       });
-      onComments(comments);
+
+      const demoCommentsForPost = DEFAULT_DEMO_COMMENTS[postId] || [];
+      const liveIds = new Set(liveComments.map((c) => c.id));
+      const remainingDemoComments = demoCommentsForPost.filter((c) => !liveIds.has(c.id));
+
+      onComments([...remainingDemoComments, ...liveComments]);
     },
     (error) => {
       console.warn(`Comments subscription note for post ${postId}:`, error);
+      onComments(DEFAULT_DEMO_COMMENTS[postId] || []);
       if (onError) onError(error);
       else handleFirestoreError(error, OperationType.GET, path);
     }

@@ -32,8 +32,10 @@ import {
   MessageCircle,
   DollarSign,
   Send,
+  Users,
+  ThumbsUp,
 } from 'lucide-react';
-import { Product, ProductCategory, Order, OrderStatus, CustomerWish, WishStatus } from '../types';
+import { Product, ProductCategory, Order, OrderStatus, CustomerWish, WishStatus, FeedPost } from '../types';
 import { adminApi, AdminContentState, BannerItem, AuditLogEntry, MediaItem } from '../services/adminApi';
 
 interface AdminDashboardProps {
@@ -41,10 +43,12 @@ interface AdminDashboardProps {
   content: AdminContentState;
   orders: Order[];
   customerWishes?: CustomerWish[];
+  feedPosts?: FeedPost[];
   onUpdateContent: (newContent: AdminContentState) => void;
   onUpdateOrders: (newOrders: Order[]) => void;
   onUpdateWishStatus?: (wishId: string, status: WishStatus, adminNotes?: string) => Promise<boolean>;
   onDeleteWish?: (wishId: string) => Promise<boolean>;
+  onDeleteFeedPost?: (postId: string) => Promise<boolean>;
   onLogout: () => void;
   onViewStore: () => void;
 }
@@ -60,6 +64,7 @@ type TabType =
   | 'coupons'
   | 'orders'
   | 'customer-wishes'
+  | 'community-feed'
   | 'media'
   | 'settings'
   | 'security'
@@ -70,14 +75,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   content,
   orders,
   customerWishes = [],
+  feedPosts = [],
   onUpdateContent,
   onUpdateOrders,
   onUpdateWishStatus,
   onDeleteWish,
+  onDeleteFeedPost,
   onLogout,
   onViewStore,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [feedSearch, setFeedSearch] = useState('');
+  const [feedFilter, setFeedFilter] = useState<'all' | 'photos'>('all');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Local draft state
@@ -324,6 +333,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               { id: 'coupons', label: 'Vouchers & Coupons', icon: Tag },
               { id: 'orders', label: 'Orders & 64 Districts', icon: Truck },
               { id: 'customer-wishes', label: 'Customer Wishes', icon: HeartHandshake, badge: pendingWishesCount },
+              { id: 'community-feed', label: 'Easy Mart News Feed', icon: Users, badge: feedPosts.length },
               { id: 'media', label: 'Media & Uploads', icon: Images },
               { id: 'settings', label: 'Global Settings', icon: Settings },
               { id: 'security', label: 'Security & Audit Logs', icon: ShieldCheck },
@@ -2038,6 +2048,230 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </div>
                       );
                     })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* TAB: COMMUNITY FEED MODERATION */}
+          {activeTab === 'community-feed' && (
+            <div className="space-y-6">
+              {/* Header Strip */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-900 border border-stone-800 p-5 rounded-2xl">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-400" />
+                    <span>Easy Mart News Feed নিয়ন্ত্রণ (Feed Moderation)</span>
+                    <span className="text-xs bg-emerald-500/20 text-emerald-400 font-mono px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      {feedPosts.length} Posts
+                    </span>
+                  </h2>
+                  <p className="text-xs text-stone-400 mt-1">
+                    ইউজারদের শেয়ার করা পোস্ট, postimages.org ছবি এবং মন্তব্য পর্যবেক্ষণ করুন। প্রয়োজনে অনুপযুক্ত পোস্ট ডিলিট করুন।
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://postimages.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-xl text-xs font-semibold border border-stone-700"
+                  >
+                    <span>postimages.org</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-stone-900 border border-stone-800 p-4 rounded-xl">
+                  <div className="text-xs text-stone-400">মোট নিউজ ফিড পোস্ট</div>
+                  <div className="text-2xl font-black text-white mt-1">{feedPosts.length}</div>
+                </div>
+                <div className="bg-stone-900 border border-stone-800 p-4 rounded-xl">
+                  <div className="text-xs text-stone-400">ছবিসহ পোস্ট (postimages.org)</div>
+                  <div className="text-2xl font-black text-blue-400 mt-1">
+                    {feedPosts.filter((p) => Boolean(p.imageUrl && p.imageUrl.trim().length > 0)).length}
+                  </div>
+                </div>
+                <div className="bg-stone-900 border border-stone-800 p-4 rounded-xl">
+                  <div className="text-xs text-stone-400">মোট লাইক সংখ্যা</div>
+                  <div className="text-2xl font-black text-amber-400 mt-1">
+                    {feedPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-stone-500" />
+                  <input
+                    type="text"
+                    value={feedSearch}
+                    onChange={(e) => setFeedSearch(e.target.value)}
+                    placeholder="লেখক, ক্যাপশন অথবা পোস্ট আইডি খুঁজুন..."
+                    className="w-full bg-stone-900 border border-stone-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-blue-500"
+                  />
+                  {feedSearch && (
+                    <button
+                      onClick={() => setFeedSearch('')}
+                      className="absolute right-3 top-3 text-stone-400 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 bg-stone-900 p-1 rounded-xl border border-stone-800 shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => setFeedFilter('all')}
+                    className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      feedFilter === 'all' ? 'bg-blue-600 text-white' : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    সব পোস্ট ({feedPosts.length})
+                  </button>
+                  <button
+                    onClick={() => setFeedFilter('photos')}
+                    className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      feedFilter === 'photos' ? 'bg-blue-600 text-white' : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    শুধুমাত্র ছবি ({feedPosts.filter((p) => Boolean(p.imageUrl)).length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Posts List */}
+              {(() => {
+                const filtered = feedPosts.filter((post) => {
+                  const matchesSearch =
+                    post.authorName.toLowerCase().includes(feedSearch.toLowerCase()) ||
+                    post.caption.toLowerCase().includes(feedSearch.toLowerCase()) ||
+                    post.id.toLowerCase().includes(feedSearch.toLowerCase());
+                  const matchesFilter = feedFilter === 'all' || (feedFilter === 'photos' && Boolean(post.imageUrl));
+                  return matchesSearch && matchesFilter;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="bg-stone-900 border border-stone-800 rounded-2xl p-12 text-center text-stone-400 space-y-2">
+                      <Users className="w-10 h-10 mx-auto text-stone-600" />
+                      <div className="text-sm font-bold text-stone-300">কোনো পোস্ট পাওয়া যায়নি</div>
+                      <p className="text-xs text-stone-500">ইউজাররা Easy Mart News Feed-এ পোস্ট করলে এখানে প্রদর্শিত হবে।</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filtered.map((post) => (
+                      <div
+                        key={post.id}
+                        className="bg-stone-900 border border-stone-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between hover:border-stone-700 transition-colors"
+                      >
+                        <div className="space-y-3">
+                          {/* Author Info & Date */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <img
+                                src={
+                                  post.authorAvatar ||
+                                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80'
+                                }
+                                alt={post.authorName}
+                                className="w-9 h-9 rounded-full object-cover border border-amber-400 shrink-0"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src =
+                                    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&auto=format&fit=crop&q=80';
+                                }}
+                              />
+                              <div>
+                                <div className="font-bold text-xs text-white">{post.authorName}</div>
+                                <div className="text-[10px] text-stone-400">
+                                  {new Date(post.createdAt).toLocaleString('bn-BD', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+
+                            <span className="text-[10px] text-stone-500 font-mono">
+                              ID: {post.id.slice(0, 10)}...
+                            </span>
+                          </div>
+
+                          {/* Caption */}
+                          {post.caption && (
+                            <p className="text-xs text-stone-200 whitespace-pre-wrap leading-relaxed bg-stone-950/60 p-3 rounded-xl border border-stone-800/80">
+                              {post.caption}
+                            </p>
+                          )}
+
+                          {/* Post Photo (postimages.org) */}
+                          {post.imageUrl && (
+                            <div className="rounded-xl overflow-hidden border border-stone-800 max-h-52 bg-black/40 flex items-center justify-center relative group">
+                              <img
+                                src={post.imageUrl}
+                                alt="Post thumbnail"
+                                className="max-h-52 w-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).alt = 'Image not found';
+                                }}
+                              />
+                              <a
+                                href={post.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/80 text-white text-[10px] font-bold flex items-center gap-1 shadow-md hover:bg-black"
+                              >
+                                <span>view postimage</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Footer Strip with Likes, Comments & Delete */}
+                        <div className="pt-3 border-t border-stone-800 flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-xs text-stone-400">
+                            <span className="flex items-center gap-1">
+                              <ThumbsUp className="w-3.5 h-3.5 text-blue-400" />
+                              <span>{post.likesCount || 0}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="w-3.5 h-3.5 text-stone-400" />
+                              <span>{post.commentsCount || 0}</span>
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={async () => {
+                              if (
+                                window.confirm(
+                                  `আপনি কি নিশ্চিত যে "${post.authorName}" এর এই পোস্টটি মুছে ফেলতে চান?`
+                                )
+                              ) {
+                                if (onDeleteFeedPost) {
+                                  await onDeleteFeedPost(post.id);
+                                }
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white transition-colors text-xs font-bold flex items-center gap-1.5 border border-rose-500/30 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>পোস্ট ডিলিট করুন</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 );
               })()}
