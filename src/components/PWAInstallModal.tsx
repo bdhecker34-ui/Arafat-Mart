@@ -306,9 +306,9 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                 <div className="flex items-center gap-3.5 pr-6">
                   <div className="relative shrink-0">
                     <img
-                      src="./assets/images/easy_mart_logo.png"
+                      src="/assets/images/easy_mart_logo.png"
                       alt="Easy Mart App"
-                      className="w-14 h-14 rounded-2xl object-contain bg-white dark:bg-stone-800 p-1 border border-stone-200 dark:border-stone-700 shadow-md"
+                      className="w-14 h-14 rounded-2xl object-contain bg-white dark:bg-stone-850 p-1 border border-stone-200 dark:border-stone-700 shadow-md"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
                           'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=120&auto=format&fit=crop&q=80';

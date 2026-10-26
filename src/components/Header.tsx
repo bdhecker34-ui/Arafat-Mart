@@ -239,9 +239,9 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="p-3.5 bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 dark:from-black dark:to-stone-900 text-white flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src="./assets/images/easy_mart_logo.png"
+                          src="/assets/images/easy_mart_logo.png"
                           alt="Easy Mart Logo"
-                          className="w-7 h-7 object-contain rounded-lg bg-black p-0.5 border border-stone-700 shadow-xs"
+                          className="w-7 h-7 object-contain rounded-lg bg-white p-0.5 border border-stone-200 dark:border-stone-700 shadow-xs"
                         />
                         <div>
                           <h4 className="text-xs font-bold leading-tight flex items-center gap-1.5">
@@ -636,7 +636,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Easy Mart — সবকিছু, এক ঠিকানায়।"
             >
               <img
-                src="./assets/images/easy_mart_header.png"
+                src="/assets/images/easy_mart_header.png"
                 alt="Easy Mart — সবকিছু, এক ঠিকানায়।"
                 className="h-14 sm:h-16 md:h-20 lg:h-22 w-auto max-w-[200px] sm:max-w-[270px] md:max-w-none object-contain transition-transform group-hover:scale-[1.03]"
               />
