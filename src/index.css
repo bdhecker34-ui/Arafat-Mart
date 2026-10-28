@@ -104,6 +104,25 @@
   animation: subtleFloat 3.5s ease-in-out infinite;
 }
 
+/* Motion Graphic Border Animations */
+@keyframes borderSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes borderGlowPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+
+.animate-border-spin {
+  animation: borderSpin 4.5s linear infinite;
+}
+
+.animate-border-glow {
+  animation: borderGlowPulse 2.5s ease-in-out infinite;
+}
+
 /* Accessibility: prefers-reduced-motion override */
 @media (prefers-reduced-motion: reduce) {
   *,

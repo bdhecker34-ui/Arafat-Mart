@@ -22,6 +22,7 @@ import { CustomerWishModal } from './components/CustomerWishModal';
 import { CommunityFeed } from './components/CommunityFeed';
 import { PWAInstallModal } from './components/PWAInstallModal';
 import { AffiliateModal } from './components/AffiliateModal';
+import { AnimatedNoticeBox } from './components/AnimatedNoticeBox';
 
 import { AdminSetup } from './admin/AdminSetup';
 import { AdminLogin } from './admin/AdminLogin';
@@ -1243,8 +1244,25 @@ export default function App() {
       )}
 
       {/* Main Catalog & Content Stream */}
-      <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-16">
+      <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-12">
         
+        {/* Animated Motion Graphic Notice Box above Category Section */}
+        <AnimatedNoticeBox
+          noticeText={storeContent.notice?.text}
+          linkText={storeContent.notice?.linkText}
+          linkUrl={storeContent.notice?.linkUrl}
+          whatsappNumber={storeContent.contact?.whatsapp}
+          language={language}
+          onTrackOrder={() => {
+            setTrackingOrderId(undefined);
+            setIsTrackOrderOpen(true);
+          }}
+          onShopNow={() => {
+            const el = document.getElementById('departments-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+
         {/* BEGIN: CategoriesSection - Find your aisle (Shop by Department) */}
         <motion.section
           id="departments-section"
