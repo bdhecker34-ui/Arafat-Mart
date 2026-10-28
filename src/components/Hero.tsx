@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Truck, RefreshCw, Headphones } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Truck, RefreshCw, Sparkles, LayoutGrid, Banknote } from 'lucide-react';
 import { ProductCategory } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -24,68 +24,45 @@ export interface SlideItem {
 const HERO_SLIDES: SlideItem[] = [
   {
     id: 1,
-    kicker: 'Curated for Modern Living in Bangladesh',
-    title: 'Everyday essentials, picked with genuine care.',
-    subtitle: 'Authentic handloom fashion, precision gadgets, and non-toxic cookware. Strict quality checks, honest pricing in ৳ BDT, and cash on delivery across all 64 districts.',
-    image: '/src/assets/images/hero_arafat_mart_lifestyle_1792405781284.jpg',
-    tag: 'Dhaka 24-48h · Nationwide 2-3 Days',
-    primaryCta: 'Explore Full Catalog',
+    kicker: 'FRESH STOCK',
+    title: 'New arrivals just landed.',
+    subtitle: 'Fresh colourways, updated gadgets and kitchen upgrades straight from the warehouse — ready to ship today.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBOTFqvDSt4SaLNzqgla7zRZlv_eGu9W2KKxKA8uVyC6UQiSmnYFNr-LbrkV7JTq_3sQhQfny_NQA7JrQ1JsHaXqx1vtDoUmyuAgEf-lVWKZZWmi-lz2ZGSWdVbDu3RKkhKEA6uLERV-lerQiOPfRRTOanoIHSBjjdJdu_mgzbNDS5WiRpNj233phIxwKrw8CNY_Gf2u-sOPjYoSX_qK_yJFGQdhn5qZqSjYkgXwt8',
+    tag: 'Ready to ship today',
+    primaryCta: 'Shop new in',
     category: 'all',
   },
   {
     id: 2,
-    kicker: 'Exclusive Heritage & Everyday Fashion',
-    title: 'Handloom Kurtis & Silk Embroidered Panjabis.',
-    subtitle: 'Pure combed breathable fabrics crafted for Bangladesh’s humid tropical climate. Hand-finished collar embroidery, wooden loop buttons, and contemporary tailored drape.',
+    kicker: 'HANDLOOM & EVERYDAY',
+    title: 'Heritage Kurtis & Embroidered Panjabis.',
+    subtitle: 'Crafted from 100% pre-shrunk cotton for comfort and breathability in any season across Bangladesh.',
     image: '/src/assets/images/hero_fashion_panjabi_kurti_banner_1792406340885.jpg',
-    tag: '100% Pre-Shrunk Pure Cotton',
-    primaryCta: 'Shop Fashion Collection',
+    tag: 'Premium Stitching & Finish',
+    primaryCta: 'Shop Fashion',
     category: 'fashion',
   },
   {
     id: 3,
-    kicker: 'Next-Generation Smart Living',
-    title: 'Magnetic Power Banks & Crystal-Clear ANC Audio.',
-    subtitle: 'Compact 22.5W Power Delivery wireless chargers with digital LED percentage screens, alongside quad-ENC noise cancelling earbuds engineered for busy city streets.',
+    kicker: 'FAST CHARGING & AUDIO',
+    title: 'Power Banks & Crystal-Clear ANC Earbuds.',
+    subtitle: 'High-speed digital display charging stations and noise-isolating audio, verified for reliability.',
     image: '/src/assets/images/hero_tech_gadgets_banner_1792406342275.jpg',
-    tag: '1-Year Official Replacement Guarantee',
-    primaryCta: 'Explore Smart Gadgets',
+    tag: '1-Year Warranty Checked',
+    primaryCta: 'Shop Gadgets',
     category: 'gadgets',
   },
   {
     id: 4,
-    kicker: 'Non-Toxic Culinary Living',
-    title: 'German Granite Cookware & Thermal Flasks.',
-    subtitle: 'Heavy-gauge 5-layer non-stick casserole pots with stay-cool beechwood handles, plus double-walled vacuum flasks retaining tea heat for 24 hours. 100% PFOA-free.',
-    image: '/src/assets/images/hero_home_kitchen_banner_1792406342249.jpg',
-    tag: 'Induction & Gas Stove Compatible',
-    primaryCta: 'Discover Kitchen Essentials',
+    kicker: 'NON-STICK & DINING',
+    title: 'German Granite Cookware & Sets.',
+    subtitle: '5-layer heavy non-stick cookware and thermal vacuum flasks engineered for daily home cooking.',
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCyg47fYNc_P3KRSjqhu4uBL5dMhCPvYpUU77I3RTXDW83eDxelB-P4I6zbdaJHVdO8JjF9Bw-wg8T8c9puemFYW61rYm0p3xeJyPhSZoT9SFWd1UmztqQDVj4y39d5h6McrdSSYKtdRuQnR_Hml24XLYi9znELgT9XED-U8kvx22nJHgRqm9s0o_4FnmebszzoBJmHkqJsnyM1mxnMZx5rqP3YtbDEJpWV9BNDdDE',
+    tag: '100% PFOA Free',
+    primaryCta: 'Shop Cookware',
     category: 'home-kitchen',
   },
 ];
-
-const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? '100%' : '-100%',
-    opacity: 0.8,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: {
-      x: { type: 'spring' as const, stiffness: 280, damping: 30 },
-      opacity: { duration: 0.35 },
-    },
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? '-100%' : '100%',
-    opacity: 0.8,
-    transition: {
-      x: { type: 'spring' as const, stiffness: 280, damping: 30 },
-      opacity: { duration: 0.35 },
-    },
-  }),
-};
 
 export const Hero: React.FC<HeroProps> = ({
   onShopClick,
@@ -94,37 +71,29 @@ export const Hero: React.FC<HeroProps> = ({
   slides,
 }) => {
   const effectiveSlides = (slides && slides.length > 0) ? slides : HERO_SLIDES;
-  const [[currentSlide, direction], setSlideState] = useState([0, 0]);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const slideTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   const totalSlides = effectiveSlides.length;
 
   const paginate = (newDirection: number) => {
-    setSlideState(([prev]) => {
+    setCurrentSlide((prev) => {
       let nextIndex = prev + newDirection;
       if (nextIndex < 0) nextIndex = totalSlides - 1;
       if (nextIndex >= totalSlides) nextIndex = 0;
-      return [nextIndex, newDirection];
+      return nextIndex;
     });
   };
 
   const jumpToSlide = (targetIndex: number) => {
-    const dir = targetIndex > currentSlide ? 1 : -1;
-    setSlideState([targetIndex, dir]);
+    setCurrentSlide(targetIndex);
   };
 
-  // Auto-play interval (5.5 seconds)
   useEffect(() => {
     if (isPaused) return;
-
-    slideTimerRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       paginate(1);
-    }, 5500);
-
-    return () => {
-      if (slideTimerRef.current) clearInterval(slideTimerRef.current);
-    };
+    }, 6000);
+    return () => clearInterval(interval);
   }, [currentSlide, isPaused, totalSlides]);
 
   const activeSlide = effectiveSlides[currentSlide] || effectiveSlides[0];
@@ -137,217 +106,188 @@ export const Hero: React.FC<HeroProps> = ({
   };
 
   return (
-    <section
-      className="relative overflow-hidden pt-4 pb-12 sm:pt-6 sm:pb-14 border-b border-stone-200"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Main 4-Slide Stage Container */}
-        <div className="relative rounded-2xl overflow-hidden border border-stone-200 bg-stone-900 shadow-md">
-          
-          {/* Slide Visual Background Layer with Animated Sliding Motion */}
-          <div className="relative aspect-[16/10] sm:aspect-[16/8] lg:aspect-[21/9] min-h-[440px] sm:min-h-[480px] w-full overflow-hidden">
-            <AnimatePresence initial={false} custom={direction} mode="popLayout">
-              <motion.div
-                key={currentSlide}
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute inset-0 w-full h-full"
-              >
-                <img
-                  src={activeSlide.image}
-                  alt={activeSlide.title}
-                  className="w-full h-full object-cover object-center filter brightness-[0.85]"
-                  loading={currentSlide === 0 ? 'eager' : 'lazy'}
-                />
-                
-                {/* Measured Scrim Gradient for WCAG AA High-Contrast Legibility */}
-                <div className="absolute inset-0 bg-gradient-to-r from-stone-950/92 via-stone-950/70 to-black/35" />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-transparent to-stone-950/20" />
-              </motion.div>
-            </AnimatePresence>
+    <div className="w-full">
+      {/* Hero Section */}
+      <section
+        className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-6"
+        data-purpose="hero-carousel"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <div className="relative rounded-3xl overflow-hidden min-h-[460px] md:min-h-[500px] flex items-center bg-stone-900 text-white shadow-xl">
+          {/* Hero Background Image with Ken Burns Zoom & AnimatePresence */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSlide.image}
+              initial={{ opacity: 0, scale: 1.08 }}
+              animate={{ opacity: 0.68, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <img
+                alt={activeSlide.title}
+                src={activeSlide.image}
+                className="w-full h-full object-cover object-center"
+              />
+            </motion.div>
+          </AnimatePresence>
 
-            {/* Slide Foreground Content Overlay with Spring Reveal */}
-            <div className="absolute inset-0 z-20 flex flex-col justify-between p-6 sm:p-10 lg:p-14 max-w-3xl pointer-events-none">
-              
-              {/* Slide Meta Kicker & Tag */}
+          <div className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-900/70 to-transparent pointer-events-none" />
+
+          {/* Hero Content Overlay with Smooth Staggered Reveal */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSlide.id}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              className="relative z-10 max-w-2xl px-6 sm:px-12 md:px-14 py-12"
+            >
+              {/* Fresh Stock Badge */}
               <motion.div
-                key={`meta-${currentSlide}`}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="space-y-1 pointer-events-auto"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="inline-flex items-center gap-2 bg-stone-800/80 backdrop-blur-md border border-stone-600/60 px-3.5 py-1.5 rounded-full text-xs font-medium text-orange-300 mb-6 shadow-xs"
               >
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                  <span>{activeSlide.kicker}</span>
-                </div>
-                <div className="text-[11px] text-stone-300 font-medium">
-                  {activeSlide.tag}
-                </div>
+                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                <span>{activeSlide.kicker || 'FRESH STOCK'}</span>
               </motion.div>
 
-              {/* Headline & Subtitle */}
-              <motion.div
-                key={`text-${currentSlide}`}
+              <motion.h1
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.15 }}
-                className="my-auto py-4 pointer-events-auto"
+                transition={{ duration: 0.4, delay: 0.15 }}
+                className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-4"
               >
-                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.18] text-balance drop-shadow-xs">
-                  {activeSlide.title}
-                </h1>
-                <p className="mt-3 text-xs sm:text-base text-stone-300 leading-relaxed max-w-xl line-clamp-3 sm:line-clamp-none">
-                  {activeSlide.subtitle}
-                </p>
-              </motion.div>
+                {activeSlide.title}
+              </motion.h1>
 
-              {/* CTAs Stacked Vertically on Left with Tap Animation */}
-              <motion.div
-                key={`ctas-${currentSlide}`}
+              <motion.p
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="flex flex-col items-start gap-2.5 sm:gap-3 pt-2 pointer-events-auto"
+                className="text-sm sm:text-base text-stone-300 font-normal leading-relaxed mb-8 max-w-xl"
               >
+                {activeSlide.subtitle}
+              </motion.p>
+
+              {/* Call to Actions with Tap Feedback */}
+              <div className="flex flex-wrap items-center gap-3.5 sm:gap-4">
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.94 }}
+                  whileHover={{ scale: 1.02, x: 2 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={() => handleSlideAction(activeSlide.category)}
-                  className="px-5 sm:px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm group min-w-[200px]"
+                  className="inline-flex items-center gap-2 bg-[#f36805] hover:bg-[#db5c00] text-white font-semibold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-orange-600/30 transition-colors cursor-pointer btn-press"
                 >
-                  <span>{activeSlide.primaryCta}</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <span>{activeSlide.primaryCta || 'Shop new in'}</span>
+                  <ArrowRight className="w-4 h-4 text-xs" />
                 </motion.button>
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.94 }}
-                  onClick={onTrackOrderClick}
-                  className="px-5 sm:px-6 py-2.5 bg-stone-900/80 hover:bg-stone-800 text-stone-200 font-semibold text-xs sm:text-sm rounded-xl border border-stone-700 backdrop-blur-xs transition-colors flex items-center justify-center gap-2 min-w-[200px]"
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    const el = document.getElementById('departments-section') || document.getElementById('catalog-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center gap-2 bg-stone-800/70 hover:bg-stone-800 text-white font-medium text-sm px-5 py-3.5 rounded-xl border border-stone-600/50 backdrop-blur-sm transition-colors cursor-pointer btn-press"
                 >
-                  <span>Track Existing Order</span>
+                  <LayoutGrid className="w-4 h-4 text-stone-400" />
+                  <span>View collections</span>
                 </motion.button>
-              </motion.div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
 
-            </div>
+          {/* Carousel Navigation Controls */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => paginate(-1)}
+            aria-label="Previous slide"
+            className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition-colors z-20 cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => paginate(1)}
+            aria-label="Next slide"
+            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition-colors z-20 cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </motion.button>
 
-            {/* Slider Arrow Controls with Tap Animation */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => paginate(-1)}
-              aria-label="Previous slide"
-              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 rounded-full bg-stone-900/60 hover:bg-stone-900/90 text-white border border-stone-700/80 backdrop-blur-xs transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => paginate(1)}
-              aria-label="Next slide"
-              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 rounded-full bg-stone-900/60 hover:bg-stone-900/90 text-white border border-stone-700/80 backdrop-blur-xs transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </motion.button>
-
-            {/* 4 Interactive Slide Indicator Dots (No numbers or lists) */}
-            <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-8 z-30 flex items-center gap-2.5 bg-stone-950/60 backdrop-blur-md px-3.5 py-2 rounded-full border border-stone-700/60">
-              {effectiveSlides.map((slide, idx) => (
-                <motion.button
-                  key={slide.id || idx}
-                  whileTap={{ scale: 0.8 }}
+          {/* Carousel Pagination & Indicator with Smooth Active Width */}
+          <div className="absolute bottom-6 left-6 sm:left-14 right-6 sm:right-14 flex items-center justify-between text-xs text-stone-400 z-20">
+            <div className="flex items-center gap-2">
+              {effectiveSlides.map((_, idx) => (
+                <button
+                  key={idx}
                   onClick={() => jumpToSlide(idx)}
-                  aria-label={`Jump to slide ${idx + 1}`}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    idx === currentSlide
-                      ? 'w-7 bg-amber-400'
-                      : 'w-2.5 bg-stone-500 hover:bg-stone-300'
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    idx === currentSlide ? 'w-7 bg-[#f36805] shadow-sm' : 'w-2.5 bg-stone-500/70 hover:bg-stone-400'
                   }`}
                 />
               ))}
             </div>
-
+            <span className="font-mono text-stone-300 font-semibold tracking-wider">
+              0{currentSlide + 1} / 0{totalSlides}
+            </span>
           </div>
-
         </div>
+      </section>
 
-        {/* 4-Column Trust Marker Strip with Subtle Scroll Entrance */}
-        <div className="mt-8 pt-6 border-t border-stone-200 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.05 }}
-            className="flex items-start gap-3.5"
-          >
-            <div className="p-2.5 rounded-lg bg-amber-100/70 text-amber-900 shrink-0">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-stone-900">All 64 Districts</h3>
-              <p className="text-xs text-stone-500 mt-0.5 leading-snug">Doorstep delivery to all 495+ upazilas</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="flex items-start gap-3.5"
-          >
-            <div className="p-2.5 rounded-lg bg-emerald-100/70 text-emerald-900 shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-stone-900">Quality Checked</h3>
-              <p className="text-xs text-stone-500 mt-0.5 leading-snug">Every product inspected prior to sealing</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-            className="flex items-start gap-3.5"
-          >
-            <div className="p-2.5 rounded-lg bg-stone-200/80 text-stone-800 shrink-0">
-              <RefreshCw className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-stone-900">7-Day Replacement</h3>
-              <p className="text-xs text-stone-500 mt-0.5 leading-snug">Hassle-free exchange policy</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="flex items-start gap-3.5"
-          >
-            <div className="p-2.5 rounded-lg bg-sky-100/70 text-sky-900 shrink-0">
-              <Headphones className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-stone-900">Dedicated Helpline</h3>
-              <p className="text-xs text-stone-500 mt-0.5 leading-snug">WhatsApp & Call: 01410556747</p>
-            </div>
-          </motion.div>
+      {/* Value Propositions / Trust Badges with Staggered Scroll Reveal */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-4" data-purpose="trust-badges">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-amber-50/40 border border-orange-100/70">
+          {[
+            {
+              icon: <Truck className="w-5 h-5 text-[#f36805]" />,
+              title: 'Fast nationwide delivery',
+              desc: 'Inside Dhaka in 24 hours, 2-4 days elsewhere.',
+            },
+            {
+              icon: <ShieldCheck className="w-5 h-5 text-[#f36805]" />,
+              title: 'Quality checked',
+              desc: 'Every listing is inspected before it ships.',
+            },
+            {
+              icon: <RefreshCw className="w-5 h-5 text-[#f36805]" />,
+              title: '7-day easy returns',
+              desc: 'Changed your mind? Send it back, no drama.',
+            },
+            {
+              icon: <Banknote className="w-5 h-5 text-[#f36805]" />,
+              title: 'Cash on delivery',
+              desc: 'Pay when the parcel reaches your door.',
+            },
+          ].map((feature, fIdx) => (
+            <motion.div
+              key={fIdx}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-20px' }}
+              transition={{ duration: 0.35, delay: fIdx * 0.08 }}
+              whileHover={{ y: -2, transition: { duration: 0.15 } }}
+              className="flex items-start gap-3.5 p-2 rounded-xl transition-colors hover:bg-white/60"
+            >
+              <div className="w-10 h-10 rounded-xl bg-orange-100/80 text-[#f36805] flex items-center justify-center shrink-0 shadow-2xs">
+                {feature.icon}
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900 tracking-tight">{feature.title}</h4>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{feature.desc}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
-
-      </div>
-    </section>
+      </section>
+    </div>
   );
 };

@@ -60,7 +60,7 @@ export const DEFAULT_STORE_CONTENT: AdminContentState = {
     { id: 'beauty-care', name: 'Beauty & Wellness', nameBn: 'সৌন্দর্য ও যত্ন', active: true },
   ],
   notice: {
-    enabled: true,
+    enabled: false,
     text: 'Cash on Delivery Across All 64 Districts in Bangladesh · Free Nationwide Delivery on orders over ৳1,999',
     priority: 'Normal',
     linkText: 'WhatsApp: 01410556747',

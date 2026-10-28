@@ -21,6 +21,7 @@ import { ProductShareModal, getProductShareUrl } from './components/ProductShare
 import { CustomerWishModal } from './components/CustomerWishModal';
 import { CommunityFeed } from './components/CommunityFeed';
 import { PWAInstallModal } from './components/PWAInstallModal';
+import { AffiliateModal } from './components/AffiliateModal';
 
 import { AdminSetup } from './admin/AdminSetup';
 import { AdminLogin } from './admin/AdminLogin';
@@ -37,11 +38,13 @@ import {
   deleteCustomerWishFromFirestore,
   subscribeFeedPosts,
   deleteFeedPostFromFirestore,
+  subscribeAffiliateAccount,
+  recordAffiliateClick,
 } from './services/firestoreService';
 import { testConnection, auth, signOut, onAuthStateChanged, User } from './firebase';
 
 import { BANGLADESH_DIVISIONS } from './data/bangladeshDistricts';
-import { Product, ProductCategory, CartItem, Order, CustomerWish, WishStatus, FeedPost } from './types';
+import { Product, ProductCategory, CartItem, Order, CustomerWish, WishStatus, FeedPost, AffiliateAccount } from './types';
 import {
   SlidersHorizontal,
   Check,
@@ -54,7 +57,6 @@ import {
   ChevronRight,
   Play,
   Pause,
-  Phone,
   MessageCircle,
   AlertTriangle,
   Lock,
@@ -64,8 +66,64 @@ import {
   Home,
   Sparkles,
   Package,
+  Star,
+  Zap,
+  Clock,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+
+const EASY_MART_DEPARTMENTS = [
+  {
+    category: 'fashion' as ProductCategory,
+    title: "Women's Fashion",
+    subtitle: "Kurtis, sarees, abayas & more",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAiHnErktCnu9k041RuNnT1g4f-JIGWxhpKXSkVaVGjJrHkcYBfJjMg5f0WO6QDSSyFXH2p2mOFcnFdk3yvPxgTIg3j7fQwRLdCjGuTkVt1F7OQLImb6a6nnwK_m3Ef4JSbz_PY9ku9WpMtUQHoMRuNLQJ-wnpSTMrt9qo1M9wKqgg-Y5cgFBo11pilv5iy5eT19ky7tAkeGZ0wCegUdPnt4f9zggDX5tir2kXUkWk"
+  },
+  {
+    category: 'fashion' as ProductCategory,
+    title: "Men's Fashion",
+    subtitle: "Panjabis, shirts & trousers",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCQoNY2Mvu-Ql6Gy-6qZHCqyhcGn0Qa6ZOciRa3f8r2V6v5SpsRlAbTl-RNzjpxcwYyG37o_Alj1rw6ozDDO8SG7qPggHe4mDsV97B-8N3r4Km3upQqVo5tIwwYa9JoRqrNOnt69bUOnXTVbj0qksYgTX9PHE6LCOLIBt38DDUk18RvItFliWLqI2F8CRIi7oKClxQJrmaLmjmm1XVNG7c0vYm0luWYZNwELiXJULA"
+  },
+  {
+    category: 'gadgets' as ProductCategory,
+    title: "Electronics & Gadgets",
+    subtitle: "Power banks, audio & more",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAoD7KSmflCMzVD4jNZtiHN4Zg6O6WT_AQb4QRijXbqlWMqnry_y9gcGvuq1q7CN3dJzDpKdpl3c6HiJ0WxqISRIhvO9jfTH8dfBmfu01fnpeqE73eX9nSeuJQTU_PGBSAjRNRmguRVVk9rcmmF2Qao3hyyygH1_y97Nx5Zi5TDehAYx78_I7GN0sRjNn3Etv3aG_r-UvmOG1Ug_ZEdfVyaAsvzxdB7-nRiiy5ftjg"
+  },
+  {
+    category: 'home-kitchen' as ProductCategory,
+    title: "Home & Kitchen",
+    subtitle: "Cookware, storage & dining",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBBLFUFnzdJ6B1VVi1OmJzINLgeGd_5BSeYbTBb0UtW0eAdNlKQ5_9V50Lg5KhVTcmIXvlYJTfEJ9uSUYcrRyQ0e_pKwZ1ePA6FYDHEv2_td5VoBLpx1R5egLmbi8rYsz4hiEBVhcBBLif2Asu9sBwxMroLjJYQ8Y5iQvGfGUrk94MB9UIk9jiGi-IigZO1ndzN_x1iwETMrrzGt0_Coe_cdFSJf-u6nGSs0u1_VKw"
+  },
+  {
+    category: 'beauty-care' as ProductCategory,
+    title: "Beauty & Personal Care",
+    subtitle: "Skincare, hair & makeup",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBcE24PDlvii7KJBGQ3NfIBmV01l_rK1X0aBWN8ElRS3O8pE_fGNynjdadASLktbH5E-3DgN__U0XgfZHHNcD85qZtYG0ADauH803UVZk3fnLsycpk4ZTWu2KsGBwK1X6Dob0ZPOJKu_YPiB0Agn9ByNi14GA8SJp9BLleSMHkhWkbF5GI9-yQ5mwuqp3q1bOFa1Ld8pjmPXxUWKySaLB5fOM76Qj8R8x21JXwPu-U"
+  },
+  {
+    category: 'fashion' as ProductCategory,
+    title: "Bags & Accessories",
+    subtitle: "Totes, handbags & wallets",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCjSV6UJtqaFud8FY9agO6rxgWp6YFtKMMcm81CtE3uSycyVqMie73qlXVCSq7MtXGAwop8_8b42pLwZ9bjhHApxjtXdz90ej7t2YaoAIPZhfg3CcnNPhsI27Wk9zV9weUepIYoyCpksYlLd6uzWzMs_0ItWiGkX0ms9qsLMa-tU3XlgLa_3kOgpLkkknX1UObgIQwNJKtFszV1SltRGBeFz3z99Pis2xEYJnnkwpY"
+  },
+  {
+    category: 'gadgets' as ProductCategory,
+    title: "Watches & Wearables",
+    subtitle: "Smartwatches & classics",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCclr2WyM3kfH93zbiqRiSnD4mbE0RoADFG-64I4W9shpIGlMxYwXkm84-dg5dMmg_mEezy_MAV937el6z3LrC1XpqOKqLxaCCHZ84bthi7JB9a-igHDv9ip12PtfOKQX2tyg8cTfVaH7pUsIGbmpFqbbnZg6CE7_gPnCjQxyDG268F7vh9_rAnkwCKkaUsJCG7NoaXrvrBE5Bo5uFGjzoMqqwGr93fK_08L4IOB4k"
+  },
+  {
+    category: 'fashion' as ProductCategory,
+    title: "Kids & Baby",
+    subtitle: "Hoodies, frocks & sets",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBXDmTe_uHntyPkVnurhKJCU40xK50H6Q3BbciwMd-wgPknFAK0uA6unkxE-nQ_5SA1Wis0xrnlxhlPIUNvLTBTZq1t9OqV0EDdb3WMVJwaYBKEdekFPpn98dHuBCYPhViI0DSM97l7Yl-zUxzLT3v84ogCZ9gjXKvgZXd6NCeAHlEjIerjM9JLOSFYb9e4ANQOtjo4L07qTE0v8rn9zBjQMk17kpn6shO9zSE0f8g"
+  }
+];
 
 type ViewMode = 'store' | 'admin-setup' | 'admin-login' | 'admin-dashboard' | 'feed';
 
@@ -104,6 +162,10 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+
+  // Affiliate Program States
+  const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
+  const [affiliateAccount, setAffiliateAccount] = useState<AffiliateAccount | null>(null);
 
   // Display Theme & Language Preferences (Persisted across sessions)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -221,6 +283,33 @@ export default function App() {
       setCurrentUser(user);
     });
     return () => unsubscribe();
+  }, []);
+
+  // Real-time synchronization of Affiliate Account for current user
+  useEffect(() => {
+    if (!currentUser) {
+      setAffiliateAccount(null);
+      return;
+    }
+    const unsub = subscribeAffiliateAccount(currentUser.uid, (acc) => {
+      setAffiliateAccount(acc);
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // Track referral param (?ref=EM-AFF-XXXX) on landing
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const refParam = params.get('ref');
+      if (refParam) {
+        localStorage.setItem('easymart_referral_ref', refParam);
+        recordAffiliateClick(refParam);
+      }
+    } catch (e) {
+      console.warn('Referral param error:', e);
+    }
   }, []);
 
   // Cart & Wishlist with localStorage persistence
@@ -463,7 +552,7 @@ export default function App() {
 
   // Handle Admin Login Success
   const handleAdminLoginSuccess = () => {
-    const email = adminApi.getAdminEmail() || 'bdhecker34@gmail.com';
+    const email = adminApi.getAdminEmail() || currentUser?.email || 'ashik140267@gmail.com';
     setAdminEmail(email);
     setCurrentView('admin-dashboard');
     showToast('Welcome to Easy Mart Admin Console');
@@ -633,7 +722,7 @@ export default function App() {
     }
 
     // Default built-in fallbacks
-    if (cleaned === 'ARAFAT10') {
+    if (cleaned === 'EASY10' || cleaned === 'ARAFAT10') {
       const sub = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
       setAppliedDiscount(Math.round(sub * 0.1));
       return true;
@@ -647,28 +736,41 @@ export default function App() {
 
   // Order Placement
   const handleOrderPlaced = async (order: Order) => {
-    setOrders((prev) => [order, ...prev]);
+    let storedRef: string | null = null;
+    try {
+      storedRef = localStorage.getItem('easymart_referral_ref');
+    } catch {}
+
+    const orderWithRef: Order = {
+      ...order,
+      affiliateRef: storedRef || undefined,
+      affiliateCommission: storedRef ? Math.round(order.total * 0.05) : undefined,
+    };
+
+    setOrders((prev) => [orderWithRef, ...prev]);
     setCart([]);
     setIsCheckoutOpen(false);
-    setLatestOrder(order);
+    setLatestOrder(orderWithRef);
     showToast('Order confirmed successfully!');
 
     // Persist order to Firebase Firestore database
     try {
       await saveOrderToFirestore({
-        orderId: order.id,
-        customerName: order.customer.fullName,
-        customerPhone: order.customer.phone,
-        deliveryDistrict: order.customer.district,
-        deliveryAddress: order.customer.fullAddress,
-        paymentMethod: order.paymentMethod,
-        trxId: order.trxId,
-        totalAmount: order.total,
-        status: order.orderStatus,
-        items: order.items,
-        notes: order.customer.orderNote,
-        userId: order.userId,
-        userEmail: order.userEmail,
+        orderId: orderWithRef.id,
+        customerName: orderWithRef.customer.fullName,
+        customerPhone: orderWithRef.customer.phone,
+        deliveryDistrict: orderWithRef.customer.district,
+        deliveryAddress: orderWithRef.customer.fullAddress,
+        paymentMethod: orderWithRef.paymentMethod,
+        trxId: orderWithRef.trxId,
+        totalAmount: orderWithRef.total,
+        status: orderWithRef.orderStatus,
+        items: orderWithRef.items,
+        notes: orderWithRef.customer.orderNote,
+        userId: orderWithRef.userId,
+        userEmail: orderWithRef.userEmail,
+        affiliateRef: orderWithRef.affiliateRef,
+        affiliateCommission: orderWithRef.affiliateCommission,
       });
     } catch (e) {
       console.warn('Firestore order save note:', e);
@@ -892,7 +994,7 @@ export default function App() {
   if (currentView === 'admin-dashboard') {
     return (
       <AdminDashboard
-        adminEmail={adminEmail || 'admin@arafatmart.com'}
+        adminEmail={adminEmail || 'admin@easymart.com'}
         content={storeContent}
         orders={orders}
         customerWishes={customerWishes}
@@ -960,7 +1062,7 @@ export default function App() {
             setAuthModalMode('login');
             setIsAuthModalOpen(true);
           }}
-          adminEmail="bdhecker34@gmail.com"
+          adminEmail={adminApi.getAdminEmail() || currentUser?.email || 'ashik140267@gmail.com'}
         />
 
         {/* Customer Auth & Account Modals */}
@@ -980,6 +1082,8 @@ export default function App() {
             isOpen={isAccountModalOpen}
             user={currentUser}
             onClose={() => setIsAccountModalOpen(false)}
+            onOpenAffiliate={() => setIsAffiliateModalOpen(true)}
+            affiliateAccount={affiliateAccount}
             onTrackOrder={(orderId) => {
               setIsAccountModalOpen(false);
               setTrackingOrderId(orderId);
@@ -992,6 +1096,27 @@ export default function App() {
             }}
           />
         )}
+
+        {/* Affiliate Modal */}
+        <AffiliateModal
+          isOpen={isAffiliateModalOpen}
+          onClose={() => setIsAffiliateModalOpen(false)}
+          currentUser={currentUser}
+          onOpenAuth={() => {
+            setAuthModalMode('login');
+            setIsAuthModalOpen(true);
+          }}
+          affiliateAccount={affiliateAccount}
+          onAffiliateCreated={(newAcc) => {
+            setAffiliateAccount(newAcc);
+            showToast('অভিনন্দন! আপনার অ্যাফিলিয়েট একাউন্ট সফলভাবে সক্রিয় হয়েছে');
+          }}
+          products={
+            storeContent.products && storeContent.products.length > 0
+              ? storeContent.products
+              : DEFAULT_STORE_CONTENT.products
+          }
+        />
 
         {/* PWA App Installation Popup System */}
         <PWAInstallModal
@@ -1047,7 +1172,7 @@ export default function App() {
 
   // ================= PUBLIC USER APPLICATION =================
   return (
-    <div className="min-h-screen bg-[#f7f3ea] dark:bg-[#0c0a09] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-900 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-white text-slate-800 flex flex-col font-sans selection:bg-[#f36805] selection:text-white transition-colors duration-200">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-20 right-6 z-50 bg-stone-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-in slide-in-from-bottom duration-200">
@@ -1072,6 +1197,8 @@ export default function App() {
         onOpenCustomerWishModal={() => setIsCustomerWishModalOpen(true)}
         onOpenFeed={() => setCurrentView('feed')}
         onOpenInstallApp={() => setIsPWAInstallModalOpen(true)}
+        onOpenAffiliate={() => setIsAffiliateModalOpen(true)}
+        hasAffiliateAccount={!!affiliateAccount}
         onOpenAdmin={openAdminConsole}
         currentUser={currentUser}
         onOpenAuth={() => {
@@ -1115,310 +1242,525 @@ export default function App() {
         />
       )}
 
-      {/* Main Catalog Section */}
-      <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-1 w-full">
-        {/* Modern Icon-Based Category Slider Section */}
-        {storeContent.homepage?.showCategoryFilters !== false && (
-          <section className="mb-10 relative" aria-label="Product Categories Slider">
-            {/* Section Heading & Category Info & Header Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 px-0.5">
-              <div>
-                <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 dark:text-stone-100 tracking-tight flex items-center gap-2">
-                  <span>{language === 'bn' ? 'পণ্য ক্যাটাগরি' : 'Product Categories'}</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    {language === 'bn' ? 'ক্যাটাগরি স্লাইডার' : 'Category Slider'}
+      {/* Main Catalog & Content Stream */}
+      <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-16">
+        
+        {/* BEGIN: CategoriesSection - Find your aisle (Shop by Department) */}
+        <motion.section
+          id="departments-section"
+          data-purpose="department-grid"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div>
+              <span className="text-[10px] font-extrabold tracking-widest text-[#f36805] uppercase">
+                SHOP BY DEPARTMENT
+              </span>
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                Find your aisle
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Eight departments, one basket. Browse the categories our customers order from most.
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ x: 2 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                setActiveCategory('all');
+                setSearchQuery('');
+                const el = document.getElementById('featured-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#f36805] transition-colors cursor-pointer self-start sm:self-auto"
+            >
+              <span>Browse everything</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[11px]" />
+            </motion.button>
+          </div>
+
+          {/* 8 Categories Visual Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
+            {EASY_MART_DEPARTMENTS.map((dept, idx) => (
+              <motion.button
+                key={idx}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-20px' }}
+                transition={{ duration: 0.35, delay: idx * 0.04 }}
+                whileHover={{ y: -4, scale: 1.01, transition: { duration: 0.2 } }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setActiveCategory(dept.category);
+                  setSearchQuery('');
+                  const el = document.getElementById('featured-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="group relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-100 shadow-xs hover:shadow-lg transition-all text-left cursor-pointer border border-slate-100"
+              >
+                <img
+                  alt={dept.title}
+                  src={dept.image}
+                  className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
+                <div className="absolute bottom-3 left-3 right-3 text-white">
+                  <h3 className="font-bold text-xs sm:text-sm leading-tight">
+                    {dept.title}
+                  </h3>
+                  <p className="text-[10px] text-stone-300 mt-0.5 line-clamp-1">
+                    {dept.subtitle}
+                  </p>
+                  <span className="text-[10px] font-semibold text-orange-300 flex items-center gap-1 mt-1 group-hover:translate-x-1 transition-transform">
+                    Shop now <ArrowRight className="w-2.5 h-2.5" />
                   </span>
-                </h2>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                  {language === 'bn' 
-                    ? 'ডানে-বামে স্লাইড করে ক্যাটাগরি বেছে নিন এবং সহজেই পণ্য ব্রাউজ করুন' 
-                    : 'Slide left & right to explore categories and filter items easily'}
-                </p>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </motion.section>
+        {/* END: CategoriesSection */}
+
+        {/* BEGIN: FeaturedPicksSection - Handpicked this week */}
+        <section id="featured-section" data-purpose="featured-products">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div>
+              <span className="text-[10px] font-extrabold tracking-widest text-[#f36805] uppercase">
+                HANDPICKED THIS WEEK
+              </span>
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                Featured picks
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                The pieces our team keeps restocking — checked for stitching, finish and value.
+              </p>
+            </div>
+
+            {/* Sort & Filter Controls */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-2xs text-xs">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="featured">Featured Picks</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="rating">Top Customer Rated</option>
+                </select>
               </div>
 
-              <div className="flex items-center gap-3 self-end sm:self-auto">
-                {activeCategory !== 'all' && (
-                  <button
-                    onClick={() => {
-                      setActiveCategory('all');
-                      setSearchQuery('');
-                    }}
-                    className="text-xs font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 underline flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    {language === 'bn' ? 'সব পণ্য দেখুন' : 'Show All'}
-                  </button>
-                )}
-
-                {/* Auto-Slide Play/Pause Toggle Indicator */}
+              {activeCategory !== 'all' && (
                 <button
-                  onClick={() => setIsCategoryAutoSlidePaused((prev) => !prev)}
-                  aria-label={isCategoryAutoSlidePaused ? 'Resume auto slide' : 'Pause auto slide'}
-                  title={
-                    language === 'bn'
-                      ? (isCategoryAutoSlidePaused ? 'অটো স্লাইড চালু করুন' : 'অটো স্লাইড সাময়িক থামান')
-                      : (isCategoryAutoSlidePaused ? 'Resume auto-slide' : 'Pause auto-slide')
-                  }
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                    isCategoryAutoSlidePaused
-                      ? 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 shadow-xs'
-                      : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 shadow-xs'
-                  }`}
+                  onClick={() => {
+                    setActiveCategory('all');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-semibold text-[#f36805] hover:underline cursor-pointer"
                 >
-                  {isCategoryAutoSlidePaused ? (
-                    <>
-                      <Play className="w-3 h-3 text-stone-500 dark:text-stone-400 fill-stone-500 dark:fill-stone-400" />
-                      <span className="text-[11px]">{language === 'bn' ? 'অটো স্লাইড বন্ধ' : 'Auto Off'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
-                      <span className="text-[11px]">
-                        {language === 'bn' ? 'অটো স্লাইড চালু' : 'Auto Sliding'}
-                      </span>
-                      <Pause className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400 ml-0.5" />
-                    </>
-                  )}
+                  Show all
                 </button>
+              )}
+            </div>
+          </div>
 
-                {/* Slider Previous / Next Controls */}
-                <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-850 p-1 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
-                  <button
-                    onClick={() => scrollCategory('left')}
-                    aria-label={language === 'bn' ? 'বাম দিকে স্লাইড' : 'Slide Left'}
-                    title={language === 'bn' ? 'পূর্ববর্তী ক্যাটাগরি' : 'Previous Categories'}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 shadow-xs hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-950/50 dark:hover:text-amber-400 active:scale-95 cursor-pointer border border-stone-200/80 dark:border-stone-700/80"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => scrollCategory('right')}
-                    aria-label={language === 'bn' ? 'ডান দিকে স্লাইড' : 'Slide Right'}
-                    title={language === 'bn' ? 'পরবর্তী ক্যাটাগরি' : 'Next Categories'}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-200 shadow-xs hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-950/50 dark:hover:text-amber-400 active:scale-95 cursor-pointer border border-stone-200/80 dark:border-stone-700/80"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+          {/* Active Search Filter State */}
+          {searchQuery.trim() && (
+            <div className="mb-6 flex items-center justify-between bg-amber-50 border border-orange-100 px-4 py-2.5 rounded-xl text-xs text-slate-800">
+              <span>
+                Searching for: &ldquo;<strong className="text-[#f36805]">{searchQuery}</strong>&rdquo; ({filteredProducts.length} results)
+              </span>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-[#f36805] underline font-semibold hover:text-[#db5c00] cursor-pointer"
+              >
+                Clear Search
+              </button>
+            </div>
+          )}
+
+          {/* 4-Column Product Grid */}
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 p-8 shadow-xs">
+              <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-800">
+                No matching products found
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                Try searching for &quot;panjabi&quot;, &quot;kurti&quot;, &quot;power bank&quot;, or &quot;cookware&quot;, or switch category.
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setActiveCategory('all');
+                }}
+                className="mt-4 px-4 py-2 bg-[#f36805] hover:bg-[#db5c00] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+              {filteredProducts.slice(0, 8).map((product, index) => (
+                <ProductCard
+                  key={product.id}
+                  index={index}
+                  product={product}
+                  language={language}
+                  onQuickView={setSelectedProduct}
+                  onAddToCart={(p) => handleAddToCart(p, 1)}
+                  isWishlisted={wishlist.some((w) => w.id === product.id)}
+                  onToggleWishlist={handleToggleWishlist}
+                  onOpenShare={setSharingProduct}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+        {/* END: FeaturedPicksSection */}
+
+        {/* BEGIN: PromoBannerSection - Up to 35% off home & kitchen */}
+        <motion.section
+          data-purpose="promo-banner"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <div className="rounded-3xl bg-[#0f172a] overflow-hidden grid grid-cols-1 md:grid-cols-2 text-white shadow-xl relative">
+            {/* Content Side */}
+            <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
+              <div className="inline-flex items-center gap-2 bg-orange-500/20 text-orange-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider w-max mb-4 border border-orange-500/30">
+                <Zap className="w-3.5 h-3.5 text-xs text-orange-400" />
+                <span>WEEKEND DROP</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-extrabold leading-tight text-white mb-4">
+                Up to 35% off home &amp; kitchen
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 mb-8 leading-relaxed max-w-md">
+                Cookware sets, dinnerware and small appliances at their lowest price of the season. Stock is limited to what is already in our warehouse.
+              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.03, x: 2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setActiveCategory('home-kitchen');
+                    setSearchQuery('');
+                    const el = document.getElementById('featured-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="inline-flex items-center gap-2 bg-[#f36805] hover:bg-[#db5c00] text-white text-xs font-bold px-5 py-3 rounded-xl transition-all shadow-md cursor-pointer btn-press"
+                >
+                  <span>Shop the deals</span>
+                  <ArrowRight className="w-3 h-3 text-[10px]" />
+                </motion.button>
+                <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                  <Clock className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Ends Sunday midnight</span>
                 </div>
               </div>
             </div>
 
-            {/* Slider Container with Edge Navigation Controls */}
-            <div
-              className="relative group"
-              onMouseEnter={() => setIsHoveredOrTouched(true)}
-              onMouseLeave={() => setIsHoveredOrTouched(false)}
-              onTouchStart={() => setIsHoveredOrTouched(true)}
-              onTouchEnd={() => setIsHoveredOrTouched(false)}
-              onTouchCancel={() => setIsHoveredOrTouched(false)}
-            >
-              {/* Floating Left Arrow (Desktop) */}
-              <button
-                onClick={() => scrollCategory('left')}
-                aria-label="Previous Slide"
-                className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-md shadow-lg border border-stone-200/90 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-amber-500 hover:text-stone-950 dark:hover:bg-amber-500 dark:hover:text-stone-950 items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              {/* Floating Right Arrow (Desktop) */}
-              <button
-                onClick={() => scrollCategory('right')}
-                aria-label="Next Slide"
-                className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/95 dark:bg-stone-900/95 backdrop-blur-md shadow-lg border border-stone-200/90 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-amber-500 hover:text-stone-950 dark:hover:bg-amber-500 dark:hover:text-stone-950 items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              {/* Horizontal Slider Track */}
-              <div
-                ref={categorySliderRef}
-                className="flex items-stretch gap-3.5 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-2.5 px-1 touch-pan-x"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {categoryTabs.map((cat) => {
-                  const isSelected = activeCategory === cat.id;
-                  const displayPrimary = language === 'bn' ? (cat.nameBn || cat.label) : cat.label;
-                  const displaySub = language === 'bn' ? (cat.nameBn ? cat.label : null) : cat.nameBn;
-
-                  return (
-                    <motion.button
-                      key={cat.id}
-                      data-category-id={cat.id}
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => {
-                        setActiveCategory(cat.id as ProductCategory);
-                        setSearchQuery('');
-                      }}
-                      className={`snap-start flex-shrink-0 w-[125px] sm:w-[145px] md:w-[160px] p-4 rounded-2xl flex flex-col items-center justify-center text-center transition-all cursor-pointer relative select-none ${
-                        isSelected
-                          ? 'bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 border-2 border-stone-900 dark:border-amber-500 shadow-lg ring-4 ring-stone-900/10 dark:ring-amber-500/25'
-                          : 'bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-850 text-stone-800 dark:text-stone-200 border border-stone-200/90 dark:border-stone-800 shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-600/50'
-                      }`}
-                      aria-pressed={isSelected}
-                    >
-                      {/* Active Indicator Top-Right Dot */}
-                      {isSelected && (
-                        <span className="absolute top-2.5 right-2.5 flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 dark:bg-stone-950 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 dark:bg-stone-950"></span>
-                        </span>
-                      )}
-
-                      {/* Icon Container */}
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2.5 transition-colors ${
-                          isSelected
-                            ? 'bg-amber-400 dark:bg-stone-950 text-stone-950 dark:text-amber-400 shadow-xs'
-                            : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300'
-                        }`}
-                      >
-                        {getCategoryIcon(cat.id)}
-                      </div>
-
-                      {/* Category Title */}
-                      <span
-                        className={`text-xs sm:text-sm font-bold tracking-tight line-clamp-1 ${
-                          isSelected ? 'text-white dark:text-stone-950' : 'text-stone-800 dark:text-stone-100'
-                        }`}
-                      >
-                        {displayPrimary}
-                      </span>
-
-                      {/* Bilingual Subtext */}
-                      {displaySub && (
-                        <span
-                          className={`text-[10px] sm:text-[11px] mt-0.5 line-clamp-1 ${
-                            isSelected ? 'text-stone-300 dark:text-stone-900 font-medium' : 'text-stone-500 dark:text-stone-400'
-                          }`}
-                        >
-                          {displaySub}
-                        </span>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* Product Count & Sorting Control Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-stone-200 dark:border-stone-800">
-          <div className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 font-medium">
-            <span>
-              {language === 'bn' ? 'প্রদর্শিত পণ্য সংখ্যা:' : 'Showing Products:'}{' '}
-              <strong className="font-mono text-stone-900 dark:text-stone-100 text-sm">
-                {filteredProducts.length}
-              </strong>{' '}
-              {language === 'bn' ? 'টি' : 'items'}
-            </span>
-          </div>
-
-          {/* Sort Dropdown */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-stone-600 dark:text-stone-400">
-            <div className="flex items-center gap-1.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xs">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-xs font-medium text-stone-800 dark:text-stone-200 focus:outline-none cursor-pointer"
-              >
-                <option value="featured" className="dark:bg-stone-900 dark:text-stone-100">
-                  {language === 'bn' ? 'Featured Picks (বাছাইকৃত)' : 'Featured Picks'}
-                </option>
-                <option value="price-asc" className="dark:bg-stone-900 dark:text-stone-100">
-                  {language === 'bn' ? 'Price: Low to High (কম থেকে বেশি দাম)' : 'Price: Low to High'}
-                </option>
-                <option value="price-desc" className="dark:bg-stone-900 dark:text-stone-100">
-                  {language === 'bn' ? 'Price: High to Low (বেশি থেকে কম দাম)' : 'Price: High to Low'}
-                </option>
-                <option value="rating" className="dark:bg-stone-900 dark:text-stone-100">
-                  {language === 'bn' ? 'Top Customer Rated (শীর্ষ রেটিং)' : 'Top Customer Rated'}
-                </option>
-              </select>
+            {/* Image Side */}
+            <div className="relative min-h-[260px] md:min-h-full overflow-hidden">
+              <img
+                alt="Kitchen Cookware Banner"
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700 ease-out"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyg47fYNc_P3KRSjqhu4uBL5dMhCPvYpUU77I3RTXDW83eDxelB-P4I6zbdaJHVdO8JjF9Bw-wg8T8c9puemFYW61rYm0p3xeJyPhSZoT9SFWd1UmztqQDVj4y39d5h6McrdSSYKtdRuQnR_Hml24XLYi9znELgT9XED-U8kvx22nJHgRqm9s0o_4FnmebszzoBJmHkqJsnyM1mxnMZx5rqP3YtbDEJpWV9BNDdDE"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#0f172a] via-transparent to-transparent"></div>
             </div>
           </div>
-        </div>
+        </motion.section>
+        {/* END: PromoBannerSection */}
 
-        {/* Active Search Filter State */}
-        {searchQuery.trim() && (
-          <div className="mb-6 flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/80 px-4 py-2.5 rounded-xl text-xs text-amber-900 dark:text-amber-300">
-            <span>
-              {language === 'bn' ? 'অনুসন্ধান ফলাফল:' : 'Searching for:'} &ldquo;<strong>{searchQuery}</strong>&rdquo;
-            </span>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-amber-800 dark:text-amber-400 underline font-semibold hover:text-amber-950 dark:hover:text-amber-200 cursor-pointer"
+        {/* BEGIN: NewArrivalsSection - Fresh Stock */}
+        <motion.section
+          data-purpose="new-arrivals"
+          initial={{ opacity: 0, y: 22 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
+            <div>
+              <span className="text-[10px] font-extrabold tracking-widest text-[#f36805] uppercase">
+                FRESH STOCK
+              </span>
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                New arrivals
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Just landed in the warehouse and ready to ship today.
+              </p>
+            </div>
+            <motion.button
+              whileHover={{ x: 2 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                setActiveCategory('all');
+                setSortBy('featured');
+                const el = document.getElementById('featured-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#f36805] transition-colors cursor-pointer self-start sm:self-auto"
             >
-              {language === 'bn' ? 'সার্চ মুছুন' : 'Clear Search'}
-            </button>
+              <span>Shop new in</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[11px]" />
+            </motion.button>
           </div>
-        )}
 
-        {/* Product Cards Grid: 3-column strict 1:1 square display */}
-        {storeContent.homepage?.showProductGrid !== false && (
-          <>
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-8">
-                <Search className="w-12 h-12 text-stone-300 dark:text-stone-600 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-stone-800 dark:text-stone-200">
-                  {language === 'bn' ? 'কোনো পণ্য পাওয়া যায়নি' : 'No matching products found'}
-                </h3>
-                <p className="text-xs text-stone-500 dark:text-stone-400 max-w-sm mx-auto mt-1">
-                  {language === 'bn' 
-                    ? '"পাঞ্জাবি", "কুর্তি", "পাওয়ার ব্যাংক", বা অন্য ক্যাটাগরি অনুসন্ধান করুন।' 
-                    : 'Try searching for "panjabi", "kurti", "power bank", or "cookware", or switch to another category.'}
+          {/* 8 New Arrivals Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {(filteredProducts.length > 8 ? filteredProducts.slice(8, 16) : [...filteredProducts].reverse()).map((product, index) => (
+              <ProductCard
+                key={`new-${product.id}`}
+                index={index}
+                product={product}
+                language={language}
+                onQuickView={setSelectedProduct}
+                onAddToCart={(p) => handleAddToCart(p, 1)}
+                isWishlisted={wishlist.some((w) => w.id === product.id)}
+                onToggleWishlist={handleToggleWishlist}
+                onOpenShare={setSharingProduct}
+              />
+            ))}
+          </div>
+        </motion.section>
+        {/* END: NewArrivalsSection */}
+
+        {/* BEGIN: TestimonialsSection - 26,000 orders and counting */}
+        <motion.section
+          data-purpose="customer-reviews"
+          initial={{ opacity: 0, y: 22 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <div className="mb-6">
+            <span className="text-[10px] font-extrabold tracking-widest text-[#f36805] uppercase">
+              FROM OUR CUSTOMERS
+            </span>
+            <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+              26,000 orders and counting
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Real notes from shoppers who ordered this season.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              {
+                text: "Ordered a three-piece on Thursday night and it reached Sylhet by Saturday morning. The fabric was exactly like the photos.",
+                author: "Nusrat Jahan",
+                loc: "Sylhet, Bangladesh",
+                initials: "NJ",
+                color: "bg-emerald-100 text-emerald-800",
+              },
+              {
+                text: "I was sceptical about the power bank price but it has been solid for four months. Delivery guy called before arriving too.",
+                author: "Rakib Hasan",
+                loc: "Chattogram, Bangladesh",
+                initials: "RH",
+                color: "bg-cyan-100 text-cyan-800",
+              },
+              {
+                text: "The cookware set arrived well packed with no dents. Customer support replied on WhatsApp within minutes when I asked about the lid.",
+                author: "Farhana Akter",
+                loc: "Dhaka, Bangladesh",
+                initials: "FA",
+                color: "bg-emerald-100 text-emerald-800",
+              },
+            ].map((review, rIdx) => (
+              <motion.div
+                key={rIdx}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-20px' }}
+                transition={{ duration: 0.35, delay: rIdx * 0.1 }}
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                className="p-6 rounded-2xl bg-amber-50/30 border border-orange-100 flex flex-col justify-between shadow-2xs hover:shadow-md transition-shadow"
+              >
+                <div>
+                  <div className="flex items-center gap-1 text-amber-400 text-xs mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed italic">
+                    &ldquo;{review.text}&rdquo;
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 mt-5 pt-4 border-t border-orange-100/60">
+                  <div className={`w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center ${review.color}`}>
+                    {review.initials}
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-900">{review.author}</h5>
+                    <span className="text-[10px] text-slate-400">{review.loc}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
+        {/* END: TestimonialsSection */}
+
+        {/* BEGIN: SupportAndContactSection - Talk to a real person in Jashore */}
+        <section id="contact-section" className="pt-6 border-t border-slate-100" data-purpose="contact-section">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div>
+              <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
+                CONTACT US
+              </span>
+              <h2 className="text-2xl font-extrabold text-slate-900 mt-1">
+                Talk to a real person in Jashore
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Questions about sizing, delivery or a return? Message us on WhatsApp for the fastest reply, or email us any time — we answer every message within a day.
+              </p>
+            </div>
+            <a
+              className="inline-flex items-center gap-2 bg-[#2d7350] hover:bg-[#235e40] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors whitespace-nowrap self-start sm:self-center"
+              href="https://wa.me/8801410556747"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <Phone className="w-3.5 h-3.5" />
+              <span>Chat on WhatsApp</span>
+            </a>
+          </div>
+
+          {/* Info Cards & Map Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            {/* 4 Contact Info Tiles */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Card 1 */}
+              <div className="p-4 rounded-xl bg-orange-50/40 border border-orange-100/80">
+                <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#f36805] flex items-center justify-center text-xs mb-2.5">
+                  <MapPin className="w-4 h-4 text-[#f36805]" />
+                </div>
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                  VISIT OUR OFFICE
+                </h4>
+                <p className="text-xs font-semibold text-slate-800 mt-1">
+                  Mohanpur, Manirampur, Jashore, Bangladesh
                 </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setActiveCategory('all');
-                  }}
-                  className="mt-4 px-4 py-2 bg-stone-900 dark:bg-amber-500 text-white dark:text-stone-950 text-xs font-semibold rounded-lg hover:bg-stone-800 dark:hover:bg-amber-400 transition-colors cursor-pointer"
-                >
-                  {language === 'bn' ? 'ফিল্টার রিসেট করুন' : 'Reset Filters'}
-                </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3 sm:gap-5 md:gap-6 lg:gap-8">
-                {filteredProducts.map((product, index) => (
-                  <ProductCard
-                    key={product.id}
-                    index={index}
-                    product={product}
-                    language={language}
-                    onQuickView={setSelectedProduct}
-                    onAddToCart={(p) => handleAddToCart(p, 1)}
-                    isWishlisted={wishlist.some((w) => w.id === product.id)}
-                    onToggleWishlist={handleToggleWishlist}
-                    onOpenShare={setSharingProduct}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
 
-        {/* Nationwide 64-District Coverage & Logistics Banner */}
+              {/* Card 2 */}
+              <div className="p-4 rounded-xl bg-emerald-50/40 border border-emerald-100/80">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs mb-2.5">
+                  <Mail className="w-4 h-4 text-emerald-700" />
+                </div>
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                  EMAIL US
+                </h4>
+                <a
+                  className="text-xs font-semibold text-[#f36805] hover:underline mt-1 block truncate"
+                  href="mailto:arafathossain.main@gmail.com"
+                >
+                  arafathossain.main@gmail.com
+                </a>
+              </div>
+
+              {/* Card 3 */}
+              <div className="p-4 rounded-xl bg-orange-50/40 border border-orange-100/80">
+                <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#f36805] flex items-center justify-center text-xs mb-2.5">
+                  <Phone className="w-4 h-4 text-[#f36805]" />
+                </div>
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                  WHATSAPP
+                </h4>
+                <p className="text-xs font-semibold text-slate-800 mt-1">01410556747</p>
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  International format: +8801410556747
+                </span>
+              </div>
+
+              {/* Card 4 */}
+              <div className="p-4 rounded-xl bg-orange-50/40 border border-orange-100/80">
+                <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#f36805] flex items-center justify-center text-xs mb-2.5">
+                  <Clock className="w-4 h-4 text-[#f36805]" />
+                </div>
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                  OPENING HOURS
+                </h4>
+                <p className="text-xs font-semibold text-slate-800 mt-1">
+                  Saturday - Thursday, 9am to 9pm
+                </p>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Call <a className="text-[#f36805] font-medium" href="tel:01410556747">01410556747</a>
+                </span>
+              </div>
+
+              {/* Wide Badge: Delivery info */}
+              <div className="sm:col-span-2 p-4 rounded-xl bg-orange-50/50 border border-orange-100/90 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 text-[#f36805] flex items-center justify-center text-xs shrink-0">
+                  <Truck className="w-4 h-4 text-[#f36805]" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">
+                    Delivery to all 64 districts
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Cash on delivery available nationwide.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Google Map Component */}
+            <div className="rounded-2xl overflow-hidden border border-slate-200 relative min-h-[280px] shadow-xs bg-slate-100">
+              <iframe
+                allowFullScreen
+                className="w-full h-full min-h-[300px] border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14693.303916962295!2d89.222718!3d23.011832!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39ff39a8ab02ea37%3A0xe54e8ec6da339893!2sManirampur%2C%20Bangladesh!5e0!3m2!1sen!2sbd!4v1715000000000!5m2!1sen!2sbd"
+                title="Easy Mart Location Map"
+              ></iframe>
+              {/* Floating Location Badge on Map */}
+              <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md rounded-xl p-3 shadow-md border border-slate-200/80 max-w-xs text-left">
+                <h5 className="text-xs font-bold text-slate-900">Mohanpur, College road</h5>
+                <p className="text-[10px] text-slate-500 mt-0.5">26FM+P46, Manirampur, Bangladesh</p>
+                <a
+                  className="mt-2 inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold px-2.5 py-1 rounded shadow-xs transition-colors"
+                  href="https://maps.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MapPin className="w-3 h-3" /> Open in Maps
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* END: SupportAndContactSection */}
+
+        {/* Nationwide 64-District Logistics Network Banner */}
         {storeContent.homepage?.showNationwideBanner !== false && (
-          <section className="mt-16 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-xs">
+          <section className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
             <div className="grid grid-cols-1 lg:grid-cols-12">
               {/* Left Column: Delivery Commitment */}
               <div className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
                 <div>
-                  <div className="text-xs uppercase font-bold tracking-widest text-amber-800 dark:text-amber-400 mb-2">
+                  <div className="text-xs uppercase font-bold tracking-widest text-[#f36805] mb-2">
                     {language === 'bn' ? 'দেশজুড়ে ৬৪ জেলায় ডেলিভারি নেটওয়ার্ক' : 'Nationwide Logistics Network'}
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-stone-900 dark:text-stone-100 tracking-tight leading-snug">
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight leading-snug">
                     {language === 'bn' 
                       ? '৬৪ জেলার যেকোনো প্রান্তে হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি।' 
                       : 'Fast, verified doorstep delivery to all 64 districts.'}
                   </h2>
-                  <p className="mt-2.5 text-xs sm:text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
+                  <p className="mt-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
                     {language === 'bn'
                       ? 'ঢাকা, চট্টগ্রাম, সিলেট, রাজশাহী, বগুড়া কিংবা প্রত্যন্ত যেকোনো উপজেলায়—আমাদের নির্ভরযোগ্য কুরিয়ার টিম নিশ্চিত করে অক্ষত ও অরিজিনাল প্যাকেজ।'
                       : 'Whether you are in Dhaka, Chattogram, Sylhet, Bogura, Rajshahi, or remote thanas of Khulna and Barishal, our courier partners ensure your package arrives securely wrapped with double tamper-evident seals.'}
@@ -1426,36 +1768,36 @@ export default function App() {
 
                   {/* 3 Value Pillars */}
                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                    <div className="p-3 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-200 dark:border-stone-700">
-                      <span className="font-bold text-stone-900 dark:text-stone-100 block">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="font-bold text-slate-900 block">
                         {language === 'bn' ? 'ঢাকা মেট্রো এরিয়া' : 'Dhaka Metropolis'}
                       </span>
-                      <span className="text-stone-500 dark:text-stone-400 text-[11px] mt-0.5 block">
+                      <span className="text-slate-500 text-[11px] mt-0.5 block">
                         {language === 'bn' ? '২৪ – ৪৮ ঘণ্টায় ডেলিভারি' : '24 – 48 Hours Delivery'} · ৳{storeContent.settings?.dhakaDeliveryFee ?? 60}
                       </span>
                     </div>
-                    <div className="p-3 bg-stone-50 dark:bg-stone-800/80 rounded-xl border border-stone-200 dark:border-stone-700">
-                      <span className="font-bold text-stone-900 dark:text-stone-100 block">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="font-bold text-slate-900 block">
                         {language === 'bn' ? 'ঢাকার বাইরে সব জেলা' : 'All Other Districts'}
                       </span>
-                      <span className="text-stone-500 dark:text-stone-400 text-[11px] mt-0.5 block">
+                      <span className="text-slate-500 text-[11px] mt-0.5 block">
                         {language === 'bn' ? '২ – ৩ দিনে ডেলিভারি' : '2 – 3 Days Delivery'} · ৳{storeContent.settings?.outsideDeliveryFee ?? 120}
                       </span>
                     </div>
-                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800/80">
-                      <span className="font-bold text-amber-900 dark:text-amber-300 block">
-                        {language === 'bn' ? `৳${storeContent.settings?.freeShippingThreshold ?? 1999} এর বেশি অর্ডারে` : `Orders over ৳${storeContent.settings?.freeShippingThreshold ?? 1999}`}
+                    <div className="p-3 bg-amber-50/60 rounded-xl border border-orange-100">
+                      <span className="font-bold text-slate-900 block">
+                        {language === 'bn' ? `৳${storeContent.settings?.freeShippingThreshold ?? 2500} এর বেশি অর্ডারে` : `Orders over ৳${storeContent.settings?.freeShippingThreshold ?? 2500}`}
                       </span>
-                      <span className="text-amber-800 dark:text-amber-400 text-[11px] mt-0.5 block font-semibold">
+                      <span className="text-[#f36805] text-[11px] mt-0.5 block font-semibold">
                         {language === 'bn' ? '১০০% ফ্রি হোম ডেলিভারি' : '100% Free Nationwide Delivery'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-stone-100 dark:border-stone-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
                     <span>
                       {language === 'bn' ? 'ডেলিভারি ম্যানের সামনে পার্সেল চেক করার সুবিধা' : 'Parcel open check before paying rider allowed'}
                     </span>
@@ -1465,7 +1807,7 @@ export default function App() {
                       setTrackingOrderId(undefined);
                       setIsTrackOrderOpen(true);
                     }}
-                    className="font-bold text-stone-900 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-1 transition-colors cursor-pointer"
+                    className="font-bold text-[#f36805] hover:text-[#db5c00] flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <span>{language === 'bn' ? 'পার্সেল ট্র্যাক করুন' : 'Track Consignment'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1474,9 +1816,9 @@ export default function App() {
               </div>
 
               {/* Right Column: Division Summary Grid */}
-              <div className="lg:col-span-5 bg-stone-50/70 dark:bg-stone-850/60 p-6 sm:p-8 border-t lg:border-t-0 lg:border-l border-stone-200 dark:border-stone-800 flex flex-col justify-center">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+              <div className="lg:col-span-5 bg-slate-50/70 p-6 sm:p-8 border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col justify-center">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#f36805]" />
                   <span>{language === 'bn' ? 'সেবা প্রদানকারী প্রশাসনিক বিভাগসমূহ:' : 'Administrative Divisions Served:'}</span>
                 </h3>
 
@@ -1484,19 +1826,19 @@ export default function App() {
                   {BANGLADESH_DIVISIONS.map((div) => (
                     <div
                       key={div.id}
-                      className="p-2 bg-white dark:bg-stone-800 rounded-lg border border-stone-200/80 dark:border-stone-700 flex items-center justify-between"
+                      className="p-2 bg-white rounded-lg border border-slate-200/80 flex items-center justify-between"
                     >
-                      <span className="font-semibold text-stone-800 dark:text-stone-200">
+                      <span className="font-semibold text-slate-800">
                         {language === 'bn' ? div.nameBn : div.name}
                       </span>
-                      <span className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">
+                      <span className="text-[10px] text-slate-500 font-mono">
                         {div.districts.length} {language === 'bn' ? 'জেলা' : 'Dist.'}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <p className="mt-4 text-[11px] text-stone-500 dark:text-stone-400 text-center">
+                <p className="mt-4 text-[11px] text-slate-500 text-center">
                   {language === 'bn' 
                     ? 'ক্যাশ অন ডেলিভারিতে সমগ্র ৬৪ জেলা ও ৪৯৫+ উপজেলা অন্তর্ভুক্ত।' 
                     : 'Total 64 districts and 495+ upazilas covered nationwide with Cash on Delivery.'}
@@ -1610,6 +1952,8 @@ export default function App() {
           isOpen={isAccountModalOpen}
           onClose={() => setIsAccountModalOpen(false)}
           user={currentUser}
+          onOpenAffiliate={() => setIsAffiliateModalOpen(true)}
+          affiliateAccount={affiliateAccount}
           onTrackOrder={(orderId) => {
             setIsAccountModalOpen(false);
             setTrackingOrderId(orderId);
@@ -1664,6 +2008,27 @@ export default function App() {
         language={language}
         onSubmitWish={handleCustomerWishSubmit}
         whatsappNumber={storeContent.contact?.whatsapp}
+      />
+
+      {/* Affiliate Program & Dashboard Modal */}
+      <AffiliateModal
+        isOpen={isAffiliateModalOpen}
+        onClose={() => setIsAffiliateModalOpen(false)}
+        currentUser={currentUser}
+        onOpenAuth={() => {
+          setAuthModalMode('login');
+          setIsAuthModalOpen(true);
+        }}
+        affiliateAccount={affiliateAccount}
+        onAffiliateCreated={(newAcc) => {
+          setAffiliateAccount(newAcc);
+          showToast('অভিনন্দন! আপনার অ্যাফিলিয়েট একাউন্ট সফলভাবে সক্রিয় হয়েছে');
+        }}
+        products={
+          storeContent.products && storeContent.products.length > 0
+            ? storeContent.products
+            : DEFAULT_STORE_CONTENT.products
+        }
       />
 
       {/* PWA App Installation Popup System */}

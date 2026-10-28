@@ -13,6 +13,7 @@ import {
   Phone,
   Mail,
   Save,
+  Gift,
 } from 'lucide-react';
 import { User, signOut, auth } from '../firebase';
 import {
@@ -21,7 +22,7 @@ import {
   saveUserProfileToFirestore,
 } from '../services/firestoreService';
 import { BANGLADESH_DIVISIONS } from '../data/bangladeshDistricts';
-import { UserProfile, OrderStatus } from '../types';
+import { UserProfile, OrderStatus, AffiliateAccount } from '../types';
 
 interface CustomerAccountModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ interface CustomerAccountModalProps {
   user: User;
   onTrackOrder: (orderId: string) => void;
   onLogout: () => void;
+  onOpenAffiliate?: () => void;
+  affiliateAccount?: AffiliateAccount | null;
 }
 
 export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
@@ -37,6 +40,8 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
   user,
   onTrackOrder,
   onLogout,
+  onOpenAffiliate,
+  affiliateAccount,
 }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'profile'>('orders');
   const [userOrders, setUserOrders] = useState<any[]>([]);
@@ -170,6 +175,42 @@ export const CustomerAccountModal: React.FC<CustomerAccountModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Affiliate Quick Card */}
+        {onOpenAffiliate && (
+          <div className="mx-4 sm:mx-6 mt-3 p-3 sm:p-3.5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 rounded-2xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <Gift className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-white flex items-center gap-1.5 truncate">
+                  <span>{affiliateAccount ? 'অ্যাফিলিয়েট পার্টনার ড্যাশবোর্ড' : 'Easy Mart অ্যাফিলিয়েট প্রোগ্রাম'}</span>
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-black ${
+                    affiliateAccount ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500 text-stone-950'
+                  }`}>
+                    {affiliateAccount ? 'সক্রিয় (Active)' : '৫% কমিশন'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400 truncate">
+                  {affiliateAccount
+                    ? `উত্তোলনযোগ্য ব্যালেন্স: ৳${(affiliateAccount.balance || 0).toLocaleString()} • আইডি: ${affiliateAccount.affiliateId}`
+                    : '১-ক্লিকে যোগ দিন ও প্রতিটি সফল ডেলিভারিতে ৫% কমিশন নিশ্চিত করুন'}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                onClose();
+                onOpenAffiliate();
+              }}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs rounded-xl shadow shrink-0 flex items-center gap-1 cursor-pointer transition-all"
+            >
+              <span>{affiliateAccount ? 'Open Affiliate Dashboard' : 'Become an Affiliate'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Tab Buttons */}
         <div className="flex border-b border-stone-800 bg-stone-950/60 p-1.5">

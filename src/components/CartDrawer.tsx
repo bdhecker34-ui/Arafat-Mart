@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, ArrowRight, ShoppingBag, ShieldCheck, Tag, Check } from 'lucide-react';
 import { CartItem } from '../types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -50,7 +50,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-stone-900/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl border-l border-stone-200">
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl border-l border-stone-200"
+      >
         
         {/* Drawer Header */}
         <div className="p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
@@ -64,7 +69,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <button
             onClick={onClose}
             aria-label="Close cart drawer"
-            className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-lg transition-colors"
+            className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -103,70 +108,76 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </p>
               <button
                 onClick={onClose}
-                className="mt-5 px-5 py-2.5 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition-colors"
+                className="mt-5 px-5 py-2.5 bg-stone-900 text-white text-xs font-semibold rounded-lg hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 Browse Catalog
               </button>
             </div>
           ) : (
-            items.map((item, index) => (
-              <div
-                key={`${item.product.id}-${index}-${item.selectedSize}-${item.selectedColor}`}
-                className="flex gap-3.5 p-3 rounded-xl border border-stone-200 bg-stone-50/40 relative group"
-              >
-                <img
-                  src={item.product.image}
-                  alt={item.product.title}
-                  className="w-18 h-18 object-cover rounded-lg border border-stone-200 bg-white shrink-0"
-                />
+            <AnimatePresence initial={false}>
+              {items.map((item, index) => (
+                <motion.div
+                  key={`${item.product.id}-${index}-${item.selectedSize}-${item.selectedColor}`}
+                  layout
+                  initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                  className="flex gap-3.5 p-3 rounded-xl border border-stone-200 bg-stone-50/40 relative group"
+                >
+                  <img
+                    src={item.product.image}
+                    alt={item.product.title}
+                    className="w-18 h-18 object-cover rounded-lg border border-stone-200 bg-white shrink-0"
+                  />
 
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-xs font-semibold text-stone-900 truncate">
-                      {item.product.title}
-                    </h4>
-                    
-                    {/* Size and Color tags */}
-                    <div className="flex items-center gap-2 text-[11px] text-stone-500 mt-0.5">
-                      {item.selectedSize && <span>Size: {item.selectedSize}</span>}
-                      {item.selectedSize && item.selectedColor && <span>·</span>}
-                      {item.selectedColor && <span>Color: {item.selectedColor}</span>}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-xs font-semibold text-stone-900 truncate">
+                        {item.product.title}
+                      </h4>
+                      
+                      {/* Size and Color tags */}
+                      <div className="flex items-center gap-2 text-[11px] text-stone-500 mt-0.5">
+                        {item.selectedSize && <span>Size: {item.selectedSize}</span>}
+                        {item.selectedSize && item.selectedColor && <span>·</span>}
+                        {item.selectedColor && <span>Color: {item.selectedColor}</span>}
+                      </div>
+
+                      <div className="mt-1 text-xs font-bold text-stone-900 font-mono tabular-nums">
+                        ৳{(item.product.price * item.quantity).toLocaleString()}
+                      </div>
                     </div>
 
-                    <div className="mt-1 text-xs font-bold text-stone-900 font-mono tabular-nums">
-                      ৳{(item.product.price * item.quantity).toLocaleString()}
+                    {/* Quantity Stepper & Remove */}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-200/60">
+                      <div className="flex items-center border border-stone-300 rounded bg-white overflow-hidden text-xs">
+                        <button
+                          onClick={() => onUpdateQuantity(index, item.quantity - 1)}
+                          className="px-2 py-0.5 text-stone-600 hover:bg-stone-100 cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="px-2.5 py-0.5 font-bold font-mono">{item.quantity}</span>
+                        <button
+                          onClick={() => onUpdateQuantity(index, item.quantity + 1)}
+                          className="px-2 py-0.5 text-stone-600 hover:bg-stone-100 cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => onRemoveItem(index)}
+                        className="text-stone-400 hover:text-rose-600 p-1 transition-colors cursor-pointer"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-
-                  {/* Quantity Stepper & Remove */}
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-200/60">
-                    <div className="flex items-center border border-stone-300 rounded bg-white overflow-hidden text-xs">
-                      <button
-                        onClick={() => onUpdateQuantity(index, item.quantity - 1)}
-                        className="px-2 py-0.5 text-stone-600 hover:bg-stone-100"
-                      >
-                        -
-                      </button>
-                      <span className="px-2.5 py-0.5 font-bold font-mono">{item.quantity}</span>
-                      <button
-                        onClick={() => onUpdateQuantity(index, item.quantity + 1)}
-                        className="px-2 py-0.5 text-stone-600 hover:bg-stone-100"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => onRemoveItem(index)}
-                      className="text-stone-400 hover:text-rose-600 p-1 transition-colors"
-                      aria-label="Remove item"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+                </motion.div>
+              ))}
+            </AnimatePresence>
           )}
         </div>
 
@@ -182,7 +193,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   type="text"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="Coupon code (e.g. ARAFAT10)"
+                  placeholder="Coupon code (e.g. EASY10)"
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-stone-300 rounded-md focus:outline-none focus:border-stone-900 uppercase font-mono"
                 />
               </div>
@@ -252,7 +263,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           </div>
         )}
 
-      </div>
+      </motion.div>
     </div>
   );
 };

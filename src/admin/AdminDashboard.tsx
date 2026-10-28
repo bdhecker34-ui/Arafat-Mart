@@ -34,9 +34,17 @@ import {
   Send,
   Users,
   ThumbsUp,
+  Gift,
 } from 'lucide-react';
-import { Product, ProductCategory, Order, OrderStatus, CustomerWish, WishStatus, FeedPost } from '../types';
-import { adminApi, AdminContentState, BannerItem, AuditLogEntry, MediaItem } from '../services/adminApi';
+import { Product, ProductCategory, Order, OrderStatus, CustomerWish, WishStatus, FeedPost, AffiliateAccount, AffiliatePayout } from '../types';
+import { adminApi, AdminContentState, BannerItem, AuditLogEntry, MediaItem, isAuthorizedAdminEmail } from '../services/adminApi';
+import {
+  adminGetAllAffiliates,
+  adminGetAllAffiliatePayouts,
+  adminUpdatePayoutStatus,
+  confirmAffiliateOrderCommission,
+} from '../services/firestoreService';
+import { BrandLogo } from '../components/BrandLogo';
 
 interface AdminDashboardProps {
   adminEmail: string;
@@ -63,6 +71,7 @@ type TabType =
   | 'contact'
   | 'coupons'
   | 'orders'
+  | 'affiliates'
   | 'customer-wishes'
   | 'community-feed'
   | 'media'
@@ -104,7 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [mediaToDelete, setMediaToDelete] = useState<string | null>(null);
 
   // STRICT ACCESS CONTROL GATE
-  if (adminEmail?.toLowerCase().trim() !== 'bdhecker34@gmail.com') {
+  if (!isAuthorizedAdminEmail(adminEmail)) {
     return (
       <div className="min-h-screen bg-stone-950 text-white flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-stone-900 border border-rose-700/60 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
@@ -113,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
           <h2 className="text-xl font-bold text-white">অ্যাক্সেস ডিনাইড (Access Denied)</h2>
           <p className="text-stone-300 text-xs leading-relaxed">
-            এই অ্যাকাউন্টটি (<span className="text-rose-400 font-mono">{adminEmail || 'Unknown'}</span>) অনুমোদিত নয়। শুধুমাত্র প্রধান অ্যাডমিন <strong className="text-amber-400">bdhecker34@gmail.com</strong> এই প্যানেলে প্রবেশ করতে পারেন।
+            এই অ্যাকাউন্টটি (<span className="text-rose-400 font-mono">{adminEmail || 'Unknown'}</span>) অনুমোদিত নয়। শুধুমাত্র অনুমোদিত অ্যাডমিন (<strong className="text-amber-400">bdhecker34@gmail.com / ashik140267@gmail.com</strong>) এই প্যানেলে প্রবেশ করতে পারেন।
           </p>
           <button
             onClick={onLogout}
@@ -149,6 +158,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [wishAdminNoteInput, setWishAdminNoteInput] = useState('');
 
   const pendingWishesCount = customerWishes.filter((w) => w.status === 'pending').length;
+
+  // Affiliate & Payout State
+  const [adminAffiliates, setAdminAffiliates] = useState<AffiliateAccount[]>([]);
+  const [adminPayouts, setAdminPayouts] = useState<AffiliatePayout[]>([]);
+  const [loadingAffiliates, setLoadingAffiliates] = useState(false);
+  const [affiliateSearch, setAffiliateSearch] = useState('');
+  const [payoutProcessingId, setPayoutProcessingId] = useState<string | null>(null);
+
+  const handleLoadAffiliates = async () => {
+    setLoadingAffiliates(true);
+    try {
+      const [affs, pos] = await Promise.all([
+        adminGetAllAffiliates(),
+        adminGetAllAffiliatePayouts(),
+      ]);
+      setAdminAffiliates(affs);
+      setAdminPayouts(pos);
+    } catch (e) {
+      console.warn('Error loading affiliates:', e);
+    } finally {
+      setLoadingAffiliates(false);
+    }
+  };
 
   const handleSaveAll = async () => {
     setIsSaving(true);
@@ -211,7 +243,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Orders update
-  const handleUpdateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    const targetOrder = orders.find((o) => o.id === orderId);
+    if (newStatus === 'delivered' && targetOrder?.affiliateRef && targetOrder?.orderStatus !== 'delivered') {
+      const comm = targetOrder.affiliateCommission || Math.round(targetOrder.total * 0.05);
+      await confirmAffiliateOrderCommission(targetOrder.affiliateRef, comm);
+    }
+
     const updated = orders.map((o) => {
       if (o.id === orderId) {
         const nextTimeline = o.timeline.map((ev) => {
@@ -272,9 +310,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Mobile Top Header */}
       <div className="md:hidden bg-stone-900 border-b border-stone-800 p-4 flex items-center justify-between z-30">
         <div className="flex items-center gap-2">
-          <img src="./assets/images/easy_mart_logo.png" alt="Easy Mart Logo" className="w-6 h-6 object-contain rounded bg-black" />
-          <span className="font-extrabold text-emerald-400 tracking-tight text-sm uppercase">Easy Mart</span>
-          <span className="text-[10px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">Admin</span>
+          <BrandLogo size="sm" variant="compact" invertText badgeText="ADMIN" />
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -301,16 +337,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       >
         <div>
           {/* Brand Wordmark */}
-          <div className="p-5 border-b border-stone-800 hidden md:flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <img src="./assets/images/easy_mart_logo.png" alt="Easy Mart Logo" className="w-8 h-8 object-contain rounded-lg bg-black p-0.5 border border-stone-700" />
-              <div>
-                <h1 className="font-extrabold text-emerald-400 text-base tracking-tight">
-                  Easy Mart
-                </h1>
-                <p className="text-[11px] text-stone-400 font-medium">Control Console</p>
-              </div>
-            </div>
+          <div className="p-4 border-b border-stone-800 hidden md:flex items-center justify-between">
+            <BrandLogo size="md" variant="compact" invertText badgeText="ADMIN" />
             <button
               onClick={onViewStore}
               className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition-colors"
@@ -332,6 +360,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               { id: 'contact', label: 'Contact & Social Links', icon: PhoneCall },
               { id: 'coupons', label: 'Vouchers & Coupons', icon: Tag },
               { id: 'orders', label: 'Orders & 64 Districts', icon: Truck },
+              { id: 'affiliates', label: 'Affiliates & Payouts', icon: Gift, badge: adminPayouts.filter(p => p.status === 'pending').length },
               { id: 'customer-wishes', label: 'Customer Wishes', icon: HeartHandshake, badge: pendingWishesCount },
               { id: 'community-feed', label: 'Easy Mart News Feed', icon: Users, badge: feedPosts.length },
               { id: 'media', label: 'Media & Uploads', icon: Images },
@@ -348,6 +377,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     setMobileMenuOpen(false);
                     if (tab.id === 'security') handleLoadAudit();
                     if (tab.id === 'media') handleLoadMedia();
+                    if (tab.id === 'affiliates') handleLoadAffiliates();
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                     activeTab === tab.id
@@ -1373,6 +1403,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         <span className="ml-2 font-mono text-[11px] bg-stone-800 text-stone-300 px-2 py-0.5 rounded">
                           Tracking: {o.trackingNumber}
                         </span>
+                        {o.affiliateRef && (
+                          <span className="ml-2 font-mono text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+                            Affiliate: {o.affiliateRef} (৳{o.affiliateCommission || Math.round(o.total * 0.05)})
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-stone-300">Milestone:</span>
@@ -1409,6 +1444,228 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* ================= AFFILIATES & PAYOUTS TAB ================= */}
+          {activeTab === 'affiliates' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-amber-400" />
+                    <span>Easy Mart Affiliate Partners & Payout Queue</span>
+                  </h3>
+                  <p className="text-xs text-stone-400">
+                    Manage 1-click Google registered affiliate partners, review referral orders, and process withdrawals.
+                  </p>
+                </div>
+                <button
+                  onClick={handleLoadAffiliates}
+                  disabled={loadingAffiliates}
+                  className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+                >
+                  <span>{loadingAffiliates ? 'Refreshing...' : 'Refresh Records'}</span>
+                </button>
+              </div>
+
+              {/* Metric summary cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-4 bg-stone-900 border border-stone-800 rounded-xl space-y-1">
+                  <div className="text-stone-400">Total Registered Affiliates</div>
+                  <div className="text-2xl font-black text-white font-mono">{adminAffiliates.length}</div>
+                  <div className="text-[10px] text-stone-500">Google Verified Accounts</div>
+                </div>
+
+                <div className="p-4 bg-stone-900 border border-stone-800 rounded-xl space-y-1">
+                  <div className="text-stone-400">Pending Payout Requests</div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">
+                    {adminPayouts.filter((p) => p.status === 'pending').length}
+                  </div>
+                  <div className="text-[10px] text-stone-500">Awaiting Admin Processing</div>
+                </div>
+
+                <div className="p-4 bg-stone-900 border border-stone-800 rounded-xl space-y-1">
+                  <div className="text-stone-400">Total Affiliate Sales Value</div>
+                  <div className="text-2xl font-black text-emerald-400 font-mono">
+                    ৳{orders
+                      .filter((o) => o.affiliateRef)
+                      .reduce((sum, o) => sum + o.total, 0)
+                      .toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-stone-500">From Referred Orders</div>
+                </div>
+              </div>
+
+              {/* SECTION 1: Payout Requests Queue */}
+              <div className="p-5 bg-stone-900 border border-stone-800 rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Withdrawal & Payout Requests ({adminPayouts.length})</span>
+                  </h4>
+                </div>
+
+                {adminPayouts.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-stone-500">
+                    No withdrawal requests submitted yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto">
+                    {adminPayouts.map((payout) => (
+                      <div
+                        key={payout.id}
+                        className="p-3 bg-stone-950 border border-stone-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm">৳{payout.amount}</span>
+                            <span className="uppercase text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                              {payout.paymentMethod}
+                            </span>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                payout.status === 'processed'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : payout.status === 'rejected'
+                                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                              }`}
+                            >
+                              {payout.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="text-stone-300 font-mono">
+                            Number / Account: <strong className="text-white">{payout.paymentNumber}</strong>
+                            {payout.accountHolderName && ` (${payout.accountHolderName})`}
+                          </div>
+                          <div className="text-[10px] text-stone-500">
+                            Affiliate: {payout.affiliateId} • Requested: {new Date(payout.createdAt).toLocaleString()}
+                          </div>
+                          {payout.transactionRef && (
+                            <div className="text-[10px] text-emerald-400">Trx Ref: {payout.transactionRef}</div>
+                          )}
+                          {payout.rejectionReason && (
+                            <div className="text-[10px] text-rose-400">Reason: {payout.rejectionReason}</div>
+                          )}
+                        </div>
+
+                        {payout.status === 'pending' && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              disabled={payoutProcessingId === payout.id}
+                              onClick={async () => {
+                                const trx = window.prompt(
+                                  `Enter Transaction ID for ${payout.paymentMethod} transfer of ৳${payout.amount}:`,
+                                  `TRX-${Date.now().toString().slice(-6)}`
+                                );
+                                if (!trx) return;
+                                setPayoutProcessingId(payout.id);
+                                await adminUpdatePayoutStatus(payout.id, 'processed', trx);
+                                await handleLoadAffiliates();
+                                setPayoutProcessingId(null);
+                              }}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Approve & Mark Paid
+                            </button>
+                            <button
+                              disabled={payoutProcessingId === payout.id}
+                              onClick={async () => {
+                                const reason = window.prompt(
+                                  `Reason for rejecting withdrawal of ৳${payout.amount} (will refund balance to user):`,
+                                  'Incorrect wallet number / KYC check required'
+                                );
+                                if (!reason) return;
+                                setPayoutProcessingId(payout.id);
+                                await adminUpdatePayoutStatus(payout.id, 'rejected', reason);
+                                await handleLoadAffiliates();
+                                setPayoutProcessingId(null);
+                              }}
+                              className="px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Reject & Refund
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: Registered Affiliate Partners Directory */}
+              <div className="p-5 bg-stone-900 border border-stone-800 rounded-xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Affiliate Partners Directory ({adminAffiliates.length})
+                  </h4>
+                  <input
+                    type="text"
+                    value={affiliateSearch}
+                    onChange={(e) => setAffiliateSearch(e.target.value)}
+                    placeholder="Search affiliate ID, name, email..."
+                    className="bg-stone-950 border border-stone-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-stone-500 focus:outline-none w-full sm:w-64"
+                  />
+                </div>
+
+                {adminAffiliates.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-stone-500">
+                    No affiliates registered yet. Users can join in 1 click from their account dropdown!
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-stone-800 text-stone-400 text-[11px]">
+                          <th className="py-2.5 px-3">Affiliate ID</th>
+                          <th className="py-2.5 px-3">Partner Name</th>
+                          <th className="py-2.5 px-3">Email (Google)</th>
+                          <th className="py-2.5 px-3">Balance</th>
+                          <th className="py-2.5 px-3">Total Earned</th>
+                          <th className="py-2.5 px-3">Orders</th>
+                          <th className="py-2.5 px-3">Clicks</th>
+                          <th className="py-2.5 px-3">Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-800">
+                        {adminAffiliates
+                          .filter((aff) => {
+                            const q = affiliateSearch.toLowerCase();
+                            return (
+                              aff.affiliateId.toLowerCase().includes(q) ||
+                              aff.name.toLowerCase().includes(q) ||
+                              aff.email.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((aff) => (
+                            <tr key={aff.userId} className="hover:bg-stone-850/50">
+                              <td className="py-2.5 px-3 font-mono font-bold text-amber-400">
+                                {aff.affiliateId}
+                              </td>
+                              <td className="py-2.5 px-3 font-semibold text-white">{aff.name}</td>
+                              <td className="py-2.5 px-3 font-mono text-stone-300">{aff.email}</td>
+                              <td className="py-2.5 px-3 font-mono font-bold text-emerald-400">
+                                ৳{(aff.balance || 0).toLocaleString()}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono text-stone-200">
+                                ৳{(aff.totalEarnings || 0).toLocaleString()}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono text-stone-200">
+                                {aff.totalReferredOrders || 0}
+                              </td>
+                              <td className="py-2.5 px-3 font-mono text-stone-400">
+                                {aff.totalClicks || 0}
+                              </td>
+                              <td className="py-2.5 px-3 text-stone-300">
+                                {aff.commissionRate || 5}%
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}

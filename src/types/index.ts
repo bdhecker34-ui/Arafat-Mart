@@ -78,6 +78,8 @@ export interface Order {
   paymentStatus: 'pending' | 'paid' | 'cod_verified';
   orderStatus: OrderStatus;
   trxId?: string;
+  affiliateRef?: string;
+  affiliateCommission?: number;
   timeline: TrackingEvent[];
 }
 
@@ -146,4 +148,39 @@ export interface CommunityProfile {
   location?: string;
   joinedAt?: string;
   updatedAt?: string;
+}
+
+export interface AffiliateAccount {
+  userId: string;
+  affiliateId: string;
+  name: string;
+  email: string;
+  status: 'active' | 'suspended';
+  commissionRate: number; // default 5%
+  totalEarnings: number; // in BDT (৳)
+  balance: number; // in BDT (৳)
+  pendingEarnings: number; // in BDT (৳)
+  totalReferredOrders: number;
+  totalClicks: number;
+  payoutMethod?: 'bkash' | 'nagad' | 'rocket' | 'bank';
+  payoutNumber?: string;
+  termsAccepted: boolean;
+  termsAcceptedAt: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AffiliatePayout {
+  id: string;
+  userId: string;
+  affiliateId: string;
+  amount: number;
+  paymentMethod: 'bkash' | 'nagad' | 'rocket' | 'bank';
+  paymentNumber: string;
+  accountHolderName?: string;
+  status: 'pending' | 'processed' | 'rejected';
+  rejectionReason?: string;
+  transactionRef?: string;
+  createdAt: string;
+  processedAt?: string;
 }

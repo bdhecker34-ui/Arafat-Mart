@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Mail, Eye, EyeOff, ArrowRight, Info } from 'lucide-react';
-import { adminApi } from '../services/adminApi';
+import { adminApi, isAuthorizedAdminEmail } from '../services/adminApi';
 import { auth, googleProvider, signInWithPopup, signOut } from '../firebase';
 
 interface AdminSetupProps {
@@ -10,7 +10,7 @@ interface AdminSetupProps {
 }
 
 export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel, onSwitchToLogin }) => {
-  const [email, setEmail] = useState('bdhecker34@gmail.com');
+  const [email, setEmail] = useState(() => adminApi.getAdminEmail() || 'ashik140267@gmail.com');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,8 +38,8 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
       return;
     }
 
-    if (email.trim().toLowerCase() !== 'bdhecker34@gmail.com') {
-      setError('অননুমোদিত ইমেইল! শুধুমাত্র প্রধান অ্যাডমিন (bdhecker34@gmail.com) সেটআপ করতে পারবেন।');
+    if (!isAuthorizedAdminEmail(email)) {
+      setError('অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত অ্যাডমিন (bdhecker34@gmail.com / ashik140267@gmail.com) সেটআপ করতে পারবেন।');
       return;
     }
 
@@ -68,10 +68,10 @@ export const AdminSetup: React.FC<AdminSetupProps> = ({ onSetupSuccess, onCancel
       const user = result.user;
       if (user && user.email) {
         const emailLower = user.email.toLowerCase().trim();
-        const isAuthorized = emailLower === 'bdhecker34@gmail.com';
+        const isAuthorized = isAuthorizedAdminEmail(emailLower);
 
         if (!isAuthorized) {
-          setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র অনুমোদিত অ্যাডমিন (bdhecker34@gmail.com) সেটআপ করতে পারবেন।`);
+          setError(`অননুমোদিত অ্যাকাউন্ট (${user.email})! শুধুমাত্র অনুমোদিত অ্যাডমিন (bdhecker34@gmail.com / ashik140267@gmail.com) সেটআপ করতে পারবেন।`);
           await signOut(auth);
           return;
         }

@@ -170,6 +170,13 @@ async function hashClientPassword(password: string): Promise<string> {
   return Math.abs(hash).toString(16);
 }
 
+export const AUTHORIZED_ADMIN_EMAILS = ['bdhecker34@gmail.com', 'ashik140267@gmail.com'];
+
+export function isAuthorizedAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+
 export const adminApi = {
   getToken(): string | null {
     return localStorage.getItem(TOKEN_KEY);
@@ -177,7 +184,7 @@ export const adminApi = {
 
   setSession(token: string, email: string) {
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail !== 'bdhecker34@gmail.com') {
+    if (!isAuthorizedAdminEmail(cleanEmail)) {
       console.warn('Security alert: blocked non-admin session:', cleanEmail);
       this.clearSession();
       return;
@@ -193,14 +200,14 @@ export const adminApi = {
 
   getAdminEmail(): string | null {
     const email = localStorage.getItem(ADMIN_EMAIL_KEY);
-    return email === 'bdhecker34@gmail.com' ? email : null;
+    return isAuthorizedAdminEmail(email) ? email : null;
   },
 
   isAuthenticated(): boolean {
     const token = this.getToken();
     const email = localStorage.getItem(ADMIN_EMAIL_KEY)?.trim().toLowerCase();
     if (!token || !email) return false;
-    if (email !== 'bdhecker34@gmail.com') {
+    if (!isAuthorizedAdminEmail(email)) {
       this.clearSession();
       return false;
     }
@@ -235,8 +242,8 @@ export const adminApi = {
 
   async initialSetup(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail !== 'bdhecker34@gmail.com') {
-      return { success: false, error: 'অননুমোদিত ইমেইল! শুধুমাত্র bdhecker34@gmail.com এর জন্য অ্যাডমিন প্যানেল সংরক্ষিত।' };
+    if (!isAuthorizedAdminEmail(cleanEmail)) {
+      return { success: false, error: 'অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত অ্যাডমিন একাউন্ট দিয়ে সেটআপ সম্পন্ন করা যাবে।' };
     }
 
     // 1. Attempt server setup if fullstack Node backend is accessible
@@ -281,8 +288,8 @@ export const adminApi = {
 
   async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail !== 'bdhecker34@gmail.com') {
-      return { success: false, error: 'অননুমোদিত ইমেইল! শুধুমাত্র bdhecker34@gmail.com দিয়ে অ্যাডমিনে প্রবেশ করা যাবে।' };
+    if (!isAuthorizedAdminEmail(cleanEmail)) {
+      return { success: false, error: 'অননুমোদিত ইমেইল! শুধুমাত্র অনুমোদিত অ্যাডমিন (bdhecker34@gmail.com / ashik140267@gmail.com) দিয়ে লগইন করা যাবে।' };
     }
 
     // 1. Attempt server login if backend is running
@@ -320,8 +327,8 @@ export const adminApi = {
         }
       }
 
-      // Store owner master login for bdhecker34@gmail.com
-      if (cleanEmail === 'bdhecker34@gmail.com' && password.length >= 6) {
+      // Store owner master login for authorized admin emails
+      if (isAuthorizedAdminEmail(cleanEmail) && password.length >= 6) {
         const creds = { email: cleanEmail, passwordHash, setupDate: new Date().toISOString() };
         localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
         localStorage.setItem(SETUP_DONE_KEY, 'true');
@@ -389,7 +396,7 @@ export const adminApi = {
 
       if (storedCredsRaw) {
         const creds = JSON.parse(storedCredsRaw);
-        if (creds.passwordHash !== curHash && creds.email !== 'bdhecker34@gmail.com') {
+        if (creds.passwordHash !== curHash && !isAuthorizedAdminEmail(creds.email)) {
           return { success: false, error: 'Current password does not match.' };
         }
       }

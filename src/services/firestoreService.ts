@@ -7,6 +7,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
   deleteDoc,
   collection,
   onSnapshot,
@@ -20,7 +21,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { AdminContentState, AuditLogEntry } from './adminApi';
-import { UserProfile, CustomerWish, WishStatus, FeedPost, FeedComment, CommunityProfile } from '../types';
+import { UserProfile, CustomerWish, WishStatus, FeedPost, FeedComment, CommunityProfile, AffiliateAccount, AffiliatePayout } from '../types';
 
 const STORE_CONTENT_DOC = 'main_config';
 
@@ -116,6 +117,8 @@ export async function saveOrderToFirestore(order: {
   notes?: string;
   userId?: string;
   userEmail?: string;
+  affiliateRef?: string;
+  affiliateCommission?: number;
 }): Promise<{ success: boolean; id: string }> {
   const path = `orders/${order.orderId}`;
   try {
@@ -958,6 +961,364 @@ export async function saveCommunityProfileToFirestore(
     try {
       handleFirestoreError(error, OperationType.UPDATE, path);
     } catch {}
+    return false;
+  }
+}
+
+// ==========================================
+// AFFILIATE SYSTEM SERVICES
+// ==========================================
+
+/**
+ * Generate a clean, unique Affiliate Code: EM-AFF-XXXX
+ */
+function generateAffiliateCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let randomPart = '';
+  for (let i = 0; i < 5; i++) {
+    randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `EM-AFF-${randomPart}`;
+}
+
+/**
+ * Fetch an affiliate account by user ID
+ */
+export async function getAffiliateAccount(userId: string): Promise<AffiliateAccount | null> {
+  const path = `affiliates/${userId}`;
+  try {
+    const docRef = doc(db, 'affiliates', userId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data() as AffiliateAccount;
+    }
+    return null;
+  } catch (error) {
+    try {
+      handleFirestoreError(error, OperationType.GET, path);
+    } catch {}
+    return null;
+  }
+}
+
+/**
+ * Real-time listener for user affiliate account
+ */
+export function subscribeAffiliateAccount(
+  userId: string,
+  onData: (account: AffiliateAccount | null) => void,
+  onError?: (err: Error) => void
+) {
+  const path = `affiliates/${userId}`;
+  const docRef = doc(db, 'affiliates', userId);
+
+  return onSnapshot(
+    docRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        onData(snapshot.data() as AffiliateAccount);
+      } else {
+        onData(null);
+      }
+    },
+    (error) => {
+      console.warn('Affiliate subscription error:', error);
+      if (onError) onError(error);
+      else {
+        try {
+          handleFirestoreError(error, OperationType.GET, path);
+        } catch {}
+      }
+    }
+  );
+}
+
+/**
+ * 1-Click Affiliate Account Creation
+ * Directly connected to existing Google Sign-In UID
+ * Ensures single account per user (doc id is request.auth.uid)
+ */
+export async function createAffiliateAccount(user: {
+  uid: string;
+  email: string;
+  displayName?: string | null;
+}): Promise<{ success: boolean; account?: AffiliateAccount; error?: string }> {
+  const path = `affiliates/${user.uid}`;
+  try {
+    const docRef = doc(db, 'affiliates', user.uid);
+    const existingSnap = await getDoc(docRef);
+
+    if (existingSnap.exists()) {
+      // User already has an affiliate account
+      return { success: true, account: existingSnap.data() as AffiliateAccount };
+    }
+
+    const affiliateId = generateAffiliateCode();
+    const newAccount: AffiliateAccount = {
+      userId: user.uid,
+      affiliateId,
+      name: user.displayName || user.email.split('@')[0],
+      email: user.email,
+      status: 'active',
+      commissionRate: 5, // 5% default standard commission
+      totalEarnings: 0,
+      balance: 0,
+      pendingEarnings: 0,
+      totalReferredOrders: 0,
+      totalClicks: 0,
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    await setDoc(docRef, newAccount);
+    return { success: true, account: newAccount };
+  } catch (error) {
+    console.error('Failed to create affiliate account:', error);
+    try {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    } catch {}
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Affiliate account creation failed',
+    };
+  }
+}
+
+/**
+ * Update payout details for affiliate
+ */
+export async function updateAffiliatePayoutSettings(
+  userId: string,
+  data: { payoutMethod: 'bkash' | 'nagad' | 'rocket' | 'bank'; payoutNumber: string }
+): Promise<boolean> {
+  const path = `affiliates/${userId}`;
+  try {
+    const docRef = doc(db, 'affiliates', userId);
+    await setDoc(docRef, { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+    return true;
+  } catch (error) {
+    try {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    } catch {}
+    return false;
+  }
+}
+
+/**
+ * Submit Affiliate Payout Withdrawal Request
+ */
+export async function requestAffiliatePayout(params: {
+  userId: string;
+  affiliateId: string;
+  amount: number;
+  paymentMethod: 'bkash' | 'nagad' | 'rocket' | 'bank';
+  paymentNumber: string;
+  accountHolderName?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const payoutId = `PO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  const path = `affiliate_payouts/${payoutId}`;
+
+  try {
+    // 1. Verify affiliate doc & balance
+    const affRef = doc(db, 'affiliates', params.userId);
+    const affSnap = await getDoc(affRef);
+    if (!affSnap.exists()) {
+      return { success: false, error: 'Affiliate account not found' };
+    }
+    const affData = affSnap.data() as AffiliateAccount;
+    if (affData.balance < params.amount) {
+      return { success: false, error: 'পর্যাপ্ত ব্যালেন্স নেই (Insufficient balance)' };
+    }
+    if (params.amount < 100) {
+      return { success: false, error: 'সর্বনিম্ন উত্তোলনের পরিমাণ ১০০ টাকা (Minimum withdrawal is ৳100)' };
+    }
+
+    // 2. Create payout doc
+    const payoutDocRef = doc(db, 'affiliate_payouts', payoutId);
+    const newPayout: AffiliatePayout = {
+      id: payoutId,
+      userId: params.userId,
+      affiliateId: params.affiliateId,
+      amount: params.amount,
+      paymentMethod: params.paymentMethod,
+      paymentNumber: params.paymentNumber,
+      accountHolderName: params.accountHolderName,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(payoutDocRef, newPayout);
+
+    // 3. Deduct from balance
+    await setDoc(
+      affRef,
+      {
+        balance: increment(-params.amount),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error requesting affiliate payout:', error);
+    try {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    } catch {}
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'উত্তোলন অনুরোধ ব্যর্থ হয়েছে',
+    };
+  }
+}
+
+/**
+ * Real-time listener for user payout requests
+ */
+export function subscribeAffiliatePayouts(
+  userId: string,
+  onData: (payouts: AffiliatePayout[]) => void
+) {
+  const colRef = collection(db, 'affiliate_payouts');
+  const q = query(colRef, where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(50));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const payouts: AffiliatePayout[] = [];
+      snapshot.forEach((docSnap) => {
+        payouts.push({ id: docSnap.id, ...(docSnap.data() as Omit<AffiliatePayout, 'id'>) });
+      });
+      onData(payouts);
+    },
+    (err) => {
+      console.warn('Affiliate payouts subscription error:', err);
+    }
+  );
+}
+
+/**
+ * Record a click on an affiliate link
+ */
+export async function recordAffiliateClick(affiliateId: string): Promise<void> {
+  try {
+    const colRef = collection(db, 'affiliates');
+    const q = query(colRef, where('affiliateId', '==', affiliateId), limit(1));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const docSnap = snap.docs[0];
+      await setDoc(docSnap.ref, { totalClicks: increment(1) }, { merge: true });
+    }
+  } catch (e) {
+    console.warn('Could not record affiliate click:', e);
+  }
+}
+
+/**
+ * Admin: Get all affiliate accounts
+ */
+export async function adminGetAllAffiliates(): Promise<AffiliateAccount[]> {
+  try {
+    const colRef = collection(db, 'affiliates');
+    const snap = await getDocs(colRef);
+    const list: AffiliateAccount[] = [];
+    snap.forEach((d) => list.push(d.data() as AffiliateAccount));
+    return list;
+  } catch (e) {
+    console.error('Admin get affiliates error:', e);
+    return [];
+  }
+}
+
+/**
+ * Admin: Get all payout requests
+ */
+export async function adminGetAllAffiliatePayouts(): Promise<AffiliatePayout[]> {
+  try {
+    const colRef = collection(db, 'affiliate_payouts');
+    const snap = await getDocs(query(colRef, orderBy('createdAt', 'desc'), limit(100)));
+    const list: AffiliatePayout[] = [];
+    snap.forEach((d) => list.push({ id: d.id, ...(d.data() as Omit<AffiliatePayout, 'id'>) }));
+    return list;
+  } catch (e) {
+    console.error('Admin get affiliate payouts error:', e);
+    return [];
+  }
+}
+
+/**
+ * Admin: Process or reject a payout request
+ */
+export async function adminUpdatePayoutStatus(
+  payoutId: string,
+  status: 'processed' | 'rejected',
+  notes?: string
+): Promise<boolean> {
+  const path = `affiliate_payouts/${payoutId}`;
+  try {
+    const pRef = doc(db, 'affiliate_payouts', payoutId);
+    const pSnap = await getDoc(pRef);
+    if (!pSnap.exists()) return false;
+    const payout = pSnap.data() as AffiliatePayout;
+
+    await setDoc(
+      pRef,
+      {
+        status,
+        rejectionReason: status === 'rejected' ? notes || '' : undefined,
+        transactionRef: status === 'processed' ? notes || '' : undefined,
+        processedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    // If rejected, refund amount back to affiliate balance
+    if (status === 'rejected') {
+      const affRef = doc(db, 'affiliates', payout.userId);
+      await setDoc(
+        affRef,
+        {
+          balance: increment(payout.amount),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    }
+
+    return true;
+  } catch (e) {
+    try {
+      handleFirestoreError(e, OperationType.UPDATE, path);
+    } catch {}
+    return false;
+  }
+}
+
+/**
+ * Confirm and credit affiliate commission when order is successfully delivered
+ */
+export async function confirmAffiliateOrderCommission(affiliateId: string, commission: number): Promise<boolean> {
+  try {
+    const colRef = collection(db, 'affiliates');
+    const q = query(colRef, where('affiliateId', '==', affiliateId), limit(1));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const docSnap = snap.docs[0];
+      await setDoc(
+        docSnap.ref,
+        {
+          balance: increment(commission),
+          totalEarnings: increment(commission),
+          totalReferredOrders: increment(1),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('Error confirming affiliate commission:', e);
     return false;
   }
 }

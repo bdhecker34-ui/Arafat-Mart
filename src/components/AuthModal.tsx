@@ -10,6 +10,7 @@ import {
   sendPasswordResetEmail,
 } from '../firebase';
 import { saveUserProfileToFirestore } from '../services/firestoreService';
+import { BrandLogo } from './BrandLogo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -147,17 +148,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="bg-stone-900 border border-stone-800 text-stone-100 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden relative">
         {/* Header Banner */}
         <div className="p-6 bg-gradient-to-b from-stone-850 to-stone-900 border-b border-stone-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img
-              src="./assets/images/easy_mart_logo.png"
-              alt="Easy Mart Logo"
-              className="w-10 h-10 object-contain rounded-xl bg-black p-1 border border-stone-700 shadow-md"
-            />
-            <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Easy Mart একাউন্ট</h2>
-              <p className="text-xs text-stone-400">সবকিছু, এক ঠিকানায়।</p>
-            </div>
-          </div>
+          <BrandLogo size="md" variant="compact" invertText badgeText="ACCOUNT" />
           <button
             onClick={onClose}
             className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-full transition-colors cursor-pointer"

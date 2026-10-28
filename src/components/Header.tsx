@@ -21,10 +21,12 @@ import {
   HeartHandshake,
   Users,
   MessageSquare,
-  Download
+  Download,
+  Gift
 } from 'lucide-react';
 import { ProductCategory } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { BrandLogo } from './BrandLogo';
 
 export interface HeaderCategoryItem {
   id: ProductCategory;
@@ -44,6 +46,8 @@ interface HeaderProps {
   onOpenCustomerWishModal?: () => void;
   onOpenFeed?: () => void;
   onOpenInstallApp?: () => void;
+  onOpenAffiliate?: () => void;
+  hasAffiliateAccount?: boolean;
   onOpenAdmin?: () => void;
   currentUser?: { displayName?: string | null; email?: string | null; uid?: string } | null;
   onOpenAuth: () => void;
@@ -74,6 +78,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCustomerWishModal,
   onOpenFeed,
   onOpenInstallApp,
+  onOpenAffiliate,
+  hasAffiliateAccount = false,
   onOpenAdmin,
   currentUser,
   onOpenAuth,
@@ -94,7 +100,29 @@ export const Header: React.FC<HeaderProps> = ({
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [cartBumping, setCartBumping] = useState(false);
+  const prevCartCountRef = useRef(cartCount);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Smooth scroll listener for floating elevation
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 15);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Cart bump animation when items are added
+  useEffect(() => {
+    if (cartCount > prevCartCountRef.current) {
+      setCartBumping(true);
+      const timer = setTimeout(() => setCartBumping(false), 450);
+      return () => clearTimeout(timer);
+    }
+    prevCartCountRef.current = cartCount;
+  }, [cartCount]);
 
   // Close dropdown on outside click or escape key
   useEffect(() => {
@@ -162,37 +190,12 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const bannerText = noticeText || 'Cash on Delivery Across All 64 Districts in Bangladesh · Free Nationwide Delivery on orders over ৳1,999';
-
   return (
-    <header className="sticky top-0 z-40 bg-[#f7f3ea]/95 dark:bg-stone-950/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-colors duration-200">
-      {/* Dismissible Top Notification Banner */}
-      {showTopBanner && noticeEnabled && (
-        <div className="bg-stone-900 text-stone-200 text-xs px-4 py-2 flex items-center justify-between">
-          <div className="mx-auto flex items-center gap-3 text-center truncate">
-            <span className="flex items-center gap-1.5 font-medium">
-              <Truck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              {bannerText}
-            </span>
-            <span className="text-stone-500 hidden md:inline">·</span>
-            <a
-              href={`https://wa.me/88${whatsappNumber.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:inline text-amber-300 hover:text-amber-200 font-medium font-mono"
-            >
-              WhatsApp: {whatsappNumber}
-            </a>
-          </div>
-          <button
-            onClick={() => setShowTopBanner(false)}
-            aria-label="Close promotion banner"
-            className="text-stone-400 hover:text-white p-1 shrink-0 transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+    <header className={`sticky top-0 z-40 transition-all duration-300 ${
+      isScrolled
+        ? 'bg-white/95 backdrop-blur-md shadow-md py-0 border-b border-slate-200/80'
+        : 'bg-white border-b border-slate-100 shadow-2xs'
+    }`}>
 
       {/* Main Navigation Bar: Strict 3-Zone Contract */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -237,22 +240,7 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     {/* Dropdown Header */}
                     <div className="p-3.5 bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 dark:from-black dark:to-stone-900 text-white flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src="/assets/images/easy_mart_logo.png"
-                          alt="Easy Mart Logo"
-                          className="w-7 h-7 object-contain rounded-lg bg-white p-0.5 border border-stone-200 dark:border-stone-700 shadow-xs"
-                        />
-                        <div>
-                          <h4 className="text-xs font-bold leading-tight flex items-center gap-1.5">
-                            <span>{language === 'bn' ? 'Easy Mart মেনু' : 'Easy Mart Menu'}</span>
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          </h4>
-                          <p className="text-[10px] text-amber-300">
-                            {language === 'bn' ? 'সবকিছু, এক ঠিকানায়।' : 'Everything in one place.'}
-                          </p>
-                        </div>
-                      </div>
+                      <BrandLogo size="sm" variant="compact" invertText badgeText="LIVE" />
                       <button
                         onClick={() => setIsMenuOpen(false)}
                         className="text-stone-400 hover:text-white p-1 rounded-md transition-colors"
@@ -512,6 +500,43 @@ export const Header: React.FC<HeaderProps> = ({
                         <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
                       </button>
 
+                      {/* Affiliate Program: Become an Affiliate / Open Affiliate Dashboard */}
+                      {onOpenAffiliate && (
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onOpenAffiliate();
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-semibold text-stone-700 dark:text-stone-300 hover:bg-white dark:hover:bg-stone-800 hover:shadow-xs transition-all border border-transparent hover:border-amber-300/40 dark:hover:border-amber-700/50 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 group-hover:scale-105 transition-transform">
+                              <Gift className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="font-bold flex items-center gap-1.5">
+                                <span>
+                                  {hasAffiliateAccount ? 'Open Affiliate Dashboard' : 'Become an Affiliate'}
+                                </span>
+                                <span className={`text-[9px] px-1.5 py-0.2 font-black rounded-full ${
+                                  hasAffiliateAccount
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950'
+                                }`}>
+                                  {hasAffiliateAccount ? '5% Active' : 'Earn 5%'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-stone-500 dark:text-stone-400">
+                                {hasAffiliateAccount
+                                  ? (language === 'bn' ? 'কমিশন, বিক্রি, ব্যালেন্স ও রেফারেল লিংক' : 'Earnings, balance & referral link')
+                                  : (language === 'bn' ? '১-ক্লিকে যোগ দিন ও ৫% কমিশন আয় করুন' : 'Join 1-click & earn 5% commission')}
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-stone-400 group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+                      )}
+
                       {/* Install Easy Mart PWA App */}
                       {onOpenInstallApp && (
                         <button
@@ -629,53 +654,63 @@ export const Header: React.FC<HeaderProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Easy Mart Brand Header Banner (slightly shifted right with pl-1 sm:pl-2) */}
+            {/* Easy Mart Brand Logo */}
             <a 
               href="#" 
-              className="flex items-center group py-1 pl-1 sm:pl-2" 
+              onClick={(e) => {
+                e.preventDefault();
+                onSelectCategory('all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex-shrink-0 flex items-center group py-0.5" 
               title="Easy Mart — সবকিছু, এক ঠিকানায়।"
             >
-              <img
-                src="/assets/images/easy_mart_header.png"
-                alt="Easy Mart — সবকিছু, এক ঠিকানায়।"
-                className="h-14 sm:h-16 md:h-20 lg:h-22 w-auto max-w-[200px] sm:max-w-[270px] md:max-w-none object-contain transition-transform group-hover:scale-[1.03]"
-              />
+              <BrandLogo size="md" variant="header" badgeText="ORIGINAL" />
             </a>
           </div>
 
-          {/* Zone 2: Track Order & Community Feed Quick Links */}
-          <div className="hidden md:flex items-center gap-3 text-sm font-medium text-stone-700 dark:text-stone-300">
-            {onOpenFeed && (
-              <button
-                onClick={onOpenFeed}
-                className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold cursor-pointer"
-              >
-                <Users className="w-4 h-4" />
-                <span>Easy Mart News Feed</span>
-              </button>
-            )}
-            <button
-              onClick={onOpenTrackOrder}
-              className="text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-stone-200/50 dark:hover:bg-stone-800 cursor-pointer"
+          {/* Central Search Bar (Desktop) */}
+          <div className="flex-1 max-w-2xl hidden md:block">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const el = document.getElementById('catalog-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="relative flex items-center w-full"
             >
-              <Truck className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-              <span>{language === 'bn' ? 'অর্ডার ট্র্যাক' : 'Track Order'}</span>
-            </button>
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Search className="w-4 h-4 text-slate-400" />
+              </div>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder={language === 'bn' ? 'পণ্য, ব্র্যান্ড এবং ক্যাটাগরি খুঁজুন...' : 'Search for products, brands and categories'}
+                className="w-full pl-10 pr-24 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white text-sm rounded-lg border border-slate-200 focus:border-[#f36805] focus:ring-1 focus:ring-[#f36805] outline-none transition-all placeholder:text-slate-400 text-slate-800"
+              />
+              <button
+                type="submit"
+                className="absolute right-1 top-1 bottom-1 px-5 bg-[#f36805] hover:bg-[#db5c00] text-white text-xs font-semibold rounded-md shadow-xs transition-all cursor-pointer"
+              >
+                {language === 'bn' ? 'খুঁজুন' : 'Search'}
+              </button>
+            </form>
           </div>
 
-          {/* Zone 3: Primary Action & Quick Tools */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Search Trigger */}
-            <div className="relative">
+          {/* User Cart & Actions */}
+          <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
+            {/* Mobile Search Button & Input */}
+            <div className="relative md:hidden">
               {isSearchOpen ? (
-                <div className="flex items-center bg-white dark:bg-stone-850 border border-stone-300 dark:border-stone-700 rounded-lg px-2.5 py-1.5 shadow-xs w-48 sm:w-64">
-                  <Search className="w-4 h-4 text-stone-400 mr-2 shrink-0" />
+                <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-xs w-48 sm:w-60">
+                  <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder={language === 'bn' ? 'পাঞ্জাবি, পাওয়ার ব্যাংক খুঁজুন...' : 'Search panjabi, power bank...'}
-                    className="w-full text-xs text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none bg-transparent"
+                    placeholder="Search products..."
+                    className="w-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent"
                     autoFocus
                   />
                   <button
@@ -683,7 +718,7 @@ export const Header: React.FC<HeaderProps> = ({
                       setIsSearchOpen(false);
                       onSearchChange('');
                     }}
-                    className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 ml-1 p-0.5"
+                    className="text-slate-400 hover:text-slate-600 ml-1 p-0.5"
                     aria-label="Close search"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -693,7 +728,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => setIsSearchOpen(true)}
                   aria-label="Search store"
-                  className="p-2 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200/50 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 text-slate-700 hover:text-[#f36805] rounded-lg transition-colors cursor-pointer"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -702,73 +737,132 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Wishlist Button */}
             <motion.button
-              whileTap={{ scale: 0.88 }}
+              whileTap={{ scale: 0.9 }}
               onClick={onOpenWishlist}
               aria-label="View wishlist"
-              className="relative p-2 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200/50 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+              className="relative p-2 text-slate-700 hover:text-[#f36805] rounded-lg transition-colors cursor-pointer"
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 bg-amber-700 dark:bg-amber-500 text-white dark:text-stone-950 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-1 right-1 bg-[#f36805] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {wishlistCount}
                 </span>
               )}
             </motion.button>
 
-            {/* Shopping Cart Button */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={onOpenCart}
-              aria-label="Open shopping cart"
-              className="flex items-center gap-2 px-3.5 py-2 bg-stone-900 dark:bg-amber-500 hover:bg-stone-800 dark:hover:bg-amber-400 text-stone-100 dark:text-stone-950 rounded-lg transition-colors shadow-xs cursor-pointer font-bold"
-            >
-              <div className="relative">
-                <ShoppingBag className="w-4 h-4" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-amber-500 dark:bg-stone-900 text-stone-950 dark:text-amber-400 text-[10px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-semibold hidden sm:inline whitespace-nowrap">
-                {cartTotal > 0 ? `৳${cartTotal.toLocaleString()}` : (language === 'bn' ? 'ব্যাগ' : 'Bag')}
-              </span>
-            </motion.button>
-
             {/* Customer User Account / Sign In */}
             {currentUser ? (
               <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={onOpenAccount}
                 title={language === 'bn' ? 'আমার একাউন্ট ও অর্ডারসমূহ' : 'My Account & Orders'}
                 aria-label="User Account"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-600/15 dark:bg-amber-500/20 hover:bg-amber-600/25 dark:hover:bg-amber-500/30 text-amber-900 dark:text-amber-300 border border-amber-600/30 dark:border-amber-500/40 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               >
-                <div className="w-5 h-5 rounded-full bg-amber-600 dark:bg-amber-500 text-white dark:text-stone-950 flex items-center justify-center text-[10px] font-bold">
+                <div className="w-5 h-5 rounded-full bg-[#0f172a] text-white flex items-center justify-center text-[10px] font-bold">
                   {currentUser.displayName?.charAt(0)?.toUpperCase() || currentUser.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
-                <span className="hidden sm:inline max-w-[90px] truncate">
+                <span className="hidden sm:inline max-w-[80px] truncate">
                   {currentUser.displayName?.split(' ')[0] || (language === 'bn' ? 'একাউন্ট' : 'Account')}
                 </span>
               </motion.button>
             ) : (
               <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={onOpenAuth}
                 title={language === 'bn' ? 'লগইন বা সাইন আপ করুন' : 'Sign In or Sign Up'}
                 aria-label="Sign In"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-stone-850 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-300 dark:border-stone-700 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               >
-                <UserIcon className="w-4 h-4 text-stone-700 dark:text-stone-300" />
-                <span className="hidden sm:inline">{language === 'bn' ? 'লগইন' : 'Login'}</span>
+                <UserIcon className="w-4 h-4 text-slate-600" />
+                <span>{language === 'bn' ? 'লগইন' : 'Login'}</span>
               </motion.button>
             )}
+
+            {/* Shopping Cart Button */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={onOpenCart}
+              aria-label="Open shopping cart"
+              className={`flex items-center gap-2 py-2 px-3 sm:px-3.5 rounded-lg border border-slate-200 hover:border-[#f36805] text-slate-800 transition-all group cursor-pointer bg-white ${
+                cartBumping ? 'animate-cart-bump border-[#f36805] shadow-md shadow-orange-500/20' : ''
+              }`}
+            >
+              <div className="relative">
+                <ShoppingBag className="w-5 h-5 text-slate-800 group-hover:text-[#f36805] transition-colors" />
+                <motion.span
+                  key={cartCount}
+                  initial={{ scale: 0.7 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                  className="absolute -top-1.5 -right-2 bg-[#f36805] text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs"
+                >
+                  {cartCount}
+                </motion.span>
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline-block">
+                CART
+              </span>
+              {cartTotal > 0 && (
+                <span className="text-xs font-semibold text-slate-900 hidden md:inline ml-0.5">
+                  · ৳{cartTotal.toLocaleString()}
+                </span>
+              )}
+            </motion.button>
           </div>
         </div>
       </div>
+
+      {/* Category Sub-navigation Menu (Matching Easy Mart UI Design) */}
+      <nav className="border-t border-slate-100 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <ul className="flex items-center gap-6 sm:gap-7 overflow-x-auto whitespace-nowrap py-2.5 text-xs font-medium text-slate-600 no-scrollbar">
+            <li>
+              <button
+                onClick={() => {
+                  onSelectCategory('all');
+                  const el = document.getElementById('catalog-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`flex items-center gap-1.5 font-bold transition-colors cursor-pointer ${
+                  activeCategory === 'all' ? 'text-[#f36805]' : 'text-slate-900 hover:text-[#f36805]'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-xs" />
+                <span>Shop all</span>
+              </button>
+            </li>
+            {[
+              { id: 'fashion' as ProductCategory, label: "Women's Fashion" },
+              { id: 'fashion' as ProductCategory, label: "Men's Fashion" },
+              { id: 'gadgets' as ProductCategory, label: 'Electronics & Gadgets' },
+              { id: 'home-kitchen' as ProductCategory, label: 'Home & Kitchen' },
+              { id: 'beauty-care' as ProductCategory, label: 'Beauty & Personal Care' },
+              { id: 'fashion' as ProductCategory, label: 'Bags & Accessories' },
+              { id: 'gadgets' as ProductCategory, label: 'Watches & Wearables' },
+              { id: 'fashion' as ProductCategory, label: 'Kids & Baby' },
+            ].map((item, idx) => (
+              <li key={`${item.label}-${idx}`}>
+                <button
+                  onClick={() => {
+                    onSelectCategory(item.id);
+                    const el = document.getElementById('catalog-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className={`hover:text-[#f36805] transition-colors cursor-pointer ${
+                    activeCategory === item.id ? 'text-[#f36805] font-semibold' : 'text-slate-600'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
     </header>
   );
 };

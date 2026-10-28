@@ -120,6 +120,45 @@
         "joinedAt": { "type": "string", "description": "Date user joined community" }
       },
       "required": ["userId", "displayName"]
+    },
+    "AffiliateAccount": {
+      "title": "AffiliateAccount",
+      "description": "User affiliate partner account with commission tracking and referral link",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the affiliate", "maxLength": 128 },
+        "affiliateId": { "type": "string", "description": "Unique affiliate code (EM-AFF-XXXX)", "maxLength": 64 },
+        "name": { "type": "string", "description": "Affiliate full name", "maxLength": 100 },
+        "email": { "type": "string", "description": "Affiliate verified email", "maxLength": 100 },
+        "status": { "type": "string", "description": "Account status (active/suspended)", "maxLength": 20 },
+        "commissionRate": { "type": "number", "description": "Standard commission percentage" },
+        "totalEarnings": { "type": "number", "description": "Lifetime confirmed earnings in BDT" },
+        "balance": { "type": "number", "description": "Current withdrawable balance in BDT" },
+        "pendingEarnings": { "type": "number", "description": "Pending delivery commissions in BDT" },
+        "totalReferredOrders": { "type": "number", "description": "Count of successful referred orders" },
+        "totalClicks": { "type": "number", "description": "Referral link clicks" },
+        "payoutMethod": { "type": "string", "description": "Preferred payout gateway", "maxLength": 30 },
+        "payoutNumber": { "type": "string", "description": "Mobile wallet or bank account number", "maxLength": 50 },
+        "termsAccepted": { "type": "boolean", "description": "Agreement to affiliate terms and delivery policy" },
+        "createdAt": { "type": "string", "description": "Affiliate registration timestamp" }
+      },
+      "required": ["userId", "affiliateId", "email", "status", "termsAccepted", "createdAt"]
+    },
+    "AffiliatePayout": {
+      "title": "AffiliatePayout",
+      "description": "Affiliate commission withdrawal request",
+      "type": "object",
+      "properties": {
+        "payoutId": { "type": "string", "description": "Unique payout reference ID", "maxLength": 64 },
+        "userId": { "type": "string", "description": "Affiliate UID", "maxLength": 128 },
+        "affiliateId": { "type": "string", "description": "Affiliate code", "maxLength": 64 },
+        "amount": { "type": "number", "description": "Withdrawal amount in BDT" },
+        "paymentMethod": { "type": "string", "description": "Payment method (bKash/Nagad/Rocket)", "maxLength": 30 },
+        "paymentNumber": { "type": "string", "description": "Account number for receiving funds", "maxLength": 50 },
+        "status": { "type": "string", "description": "Payout status (pending/processed/rejected)", "maxLength": 20 },
+        "createdAt": { "type": "string", "description": "Request creation timestamp" }
+      },
+      "required": ["payoutId", "userId", "affiliateId", "amount", "paymentMethod", "paymentNumber", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -154,6 +193,14 @@
     "/user_profiles/{userId}": {
       "schema": { "$ref": "#/entities/CommunityProfile" },
       "description": "Public user profiles with postimages.org avatar"
+    },
+    "/affiliates/{userId}": {
+      "schema": { "$ref": "#/entities/AffiliateAccount" },
+      "description": "One-to-one user affiliate partner profile and commission records"
+    },
+    "/affiliate_payouts/{payoutId}": {
+      "schema": { "$ref": "#/entities/AffiliatePayout" },
+      "description": "Affiliate payout and withdrawal requests"
     }
   }
 }

@@ -21,6 +21,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { BrandLogo } from './BrandLogo';
 
 interface PWAInstallModalProps {
   language?: 'bn' | 'en';
@@ -305,15 +306,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                 {/* Header with App Logo & Verified Badge */}
                 <div className="flex items-center gap-3.5 pr-6">
                   <div className="relative shrink-0">
-                    <img
-                      src="/assets/images/easy_mart_logo.png"
-                      alt="Easy Mart App"
-                      className="w-14 h-14 rounded-2xl object-contain bg-white dark:bg-stone-850 p-1 border border-stone-200 dark:border-stone-700 shadow-md"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=120&auto=format&fit=crop&q=80';
-                      }}
-                    />
+                    <BrandLogo size="lg" variant="icon-only" />
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-xs">
                       <ShieldCheck className="w-3 h-3" />
                     </div>

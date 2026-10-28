@@ -119,5 +119,32 @@ service cloud.firestore {
       // Only profile owner or admin can update avatar and profile info
       allow write: if isValidId(userId) && (isAdmin() || (isSignedIn() && request.auth.uid == userId));
     }
+
+    // 10. Affiliate Accounts (1-to-1 tied to request.auth.uid)
+    match /affiliates/{userId} {
+      // User can read their own affiliate account; Admin can read all
+      allow read: if isValidId(userId) && (isAdmin() || (isSignedIn() && request.auth.uid == userId));
+      // User can create their own affiliate account (single account per user enforced by doc ID = request.auth.uid)
+      allow create: if isValidId(userId) && isSignedIn() && request.auth.uid == userId &&
+        incoming().userId == request.auth.uid &&
+        incoming().affiliateId is string && incoming().affiliateId.size() <= 64 &&
+        incoming().termsAccepted == true;
+      // User can update their payout settings or clicks/link info; Admin has full control
+      allow update: if isValidId(userId) && (isAdmin() || (isSignedIn() && request.auth.uid == userId));
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // 11. Affiliate Payout Requests
+    match /affiliate_payouts/{payoutId} {
+      // Signed-in user can read their own payout requests; Admin can read all
+      allow read: if isValidId(payoutId) && (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid));
+      // Signed-in affiliate can create a payout request
+      allow create: if isValidId(payoutId) && isSignedIn() &&
+        incoming().userId == request.auth.uid &&
+        incoming().amount is number && incoming().amount > 0 &&
+        incoming().paymentMethod is string && incoming().paymentNumber is string;
+      // Admin can update payout status (processed, rejected); Admin can delete
+      allow update, delete: if isValidId(payoutId) && isAdmin();
+    }
   }
 }
