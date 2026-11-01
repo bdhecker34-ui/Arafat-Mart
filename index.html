@@ -8,6 +8,15 @@
           var p = location.pathname;
           if (!p.endsWith('/') && !p.split('/').pop().includes('.')) {
             location.replace(location.protocol + '//' + location.host + p + '/' + location.search + location.hash);
+            return;
+          }
+          // If accessing github.io repository root where uncompiled main.tsx is served,
+          // automatically redirect to /docs/ where the compiled production build lives.
+          if (!p.includes('/docs/')) {
+            var script = document.querySelector('script[src*="main.tsx"]');
+            if (script) {
+              location.replace(p + 'docs/' + location.search + location.hash);
+            }
           }
         }
       })();
@@ -29,9 +38,9 @@
     <meta property="og:title" content="Easy Mart | সবকিছু, এক ঠিকানায়।" />
     <meta property="og:description" content="Easy Mart — সবকিছু, এক ঠিকানায়। কোয়ালিটি পণ্য ও ক্যাশ অন ডেলিভারি সমগ্র বাংলাদেশে।" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/assets/images/easy_mart_header.png" />
+    <meta property="og:image" content="./assets/images/easy_mart_header.png" />
     <meta property="og:site_name" content="Easy Mart" />
-    <meta name="twitter:image" content="/assets/images/easy_mart_header.png" />
+    <meta name="twitter:image" content="./assets/images/easy_mart_header.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Easy Mart | সবকিছু, এক ঠিকানায়।" />
     <meta name="twitter:description" content="Easy Mart — সবকিছু, এক ঠিকানায়। কোয়ালিটি পণ্য ও ক্যাশ অন ডেলিভারি সমগ্র বাংলাদেশে।" />
@@ -40,7 +49,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[#f7f3ea] dark:bg-[#0c0a09] text-stone-900 dark:text-stone-100 antialiased font-sans selection:bg-amber-900 selection:text-amber-50">
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f7f3ea; font-family: system-ui, -apple-system, sans-serif; padding: 24px;">
+        <div style="max-width: 440px; width: 100%; background: #ffffff; border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border: 1px solid #fde68a;">
+          <div style="width: 56px; height: 56px; background: #fffbeb; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 28px;">🛍️</div>
+          <h1 style="font-size: 22px; font-weight: 800; color: #1c1917; margin: 0 0 8px;">Easy Mart</h1>
+          <p style="font-size: 14px; color: #57534e; margin: 0 0 20px; line-height: 1.5;">দোকানটি লোড হচ্ছে... অনুগ্রহ করে একটু অপেক্ষা করুন।</p>
+          <a href="./docs/" style="display: inline-block; background: #92400e; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;">সরাসরি স্টোরে প্রবেশ করুন (Open Store)</a>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
