@@ -107,15 +107,15 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <div className="w-full">
-      {/* Hero Section */}
+      {/* Hero Section - Edge-to-Edge Full Width (Left to Right) */}
       <section
-        className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-6"
+        className="w-full relative overflow-hidden"
         data-purpose="hero-carousel"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        <div className="relative rounded-3xl overflow-hidden min-h-[460px] md:min-h-[500px] flex items-center bg-stone-900 text-white shadow-xl">
-          {/* Hero Background Image with Ken Burns Zoom & AnimatePresence */}
+        <div className="relative w-full overflow-hidden min-h-[460px] sm:min-h-[500px] md:min-h-[540px] lg:min-h-[580px] flex items-center bg-stone-900 text-white shadow-md">
+          {/* Hero Background Image with Ken Burns Zoom & AnimatePresence (Solid, crisp image) */}
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSlide.image}
@@ -136,71 +136,73 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-900/70 to-transparent pointer-events-none" />
 
           {/* Hero Content Overlay with Smooth Staggered Reveal */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSlide.id}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
-              className="relative z-10 max-w-2xl px-6 sm:px-12 md:px-14 py-12"
-            >
-              {/* Fresh Stock Badge */}
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 md:px-16 lg:px-20 py-12 sm:py-16">
+            <AnimatePresence mode="wait">
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="inline-flex items-center gap-2 bg-stone-800/80 backdrop-blur-md border border-stone-600/60 px-3.5 py-1.5 rounded-full text-xs font-medium text-orange-300 mb-6 shadow-xs"
+                key={activeSlide.id}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="max-w-2xl"
               >
-                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-                <span>{activeSlide.kicker || 'FRESH STOCK'}</span>
+                {/* Fresh Stock Badge */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="inline-flex items-center gap-2 bg-stone-800/80 backdrop-blur-md border border-stone-600/60 px-3.5 py-1.5 rounded-full text-xs font-medium text-orange-300 mb-6 shadow-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                  <span>{activeSlide.kicker || 'FRESH STOCK'}</span>
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.15 }}
+                  className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-4"
+                >
+                  {activeSlide.title}
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                  className="text-sm sm:text-base text-stone-300 font-normal leading-relaxed mb-8 max-w-xl"
+                >
+                  {activeSlide.subtitle}
+                </motion.p>
+
+                {/* Call to Actions with Tap Feedback */}
+                <div className="flex flex-wrap items-center gap-3.5 sm:gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.02, x: 2 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => handleSlideAction(activeSlide.category)}
+                    className="inline-flex items-center gap-2 bg-[#f36805] hover:bg-[#db5c00] text-white font-semibold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-orange-600/30 transition-colors cursor-pointer btn-press"
+                  >
+                    <span>{activeSlide.primaryCta || 'Shop new in'}</span>
+                    <ArrowRight className="w-4 h-4 text-xs" />
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      const el = document.getElementById('departments-section') || document.getElementById('catalog-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-2 bg-stone-800/70 hover:bg-stone-800 text-white font-medium text-sm px-5 py-3.5 rounded-xl border border-stone-600/50 backdrop-blur-sm transition-colors cursor-pointer btn-press"
+                  >
+                    <LayoutGrid className="w-4 h-4 text-stone-400" />
+                    <span>View collections</span>
+                  </motion.button>
+                </div>
               </motion.div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.15 }}
-                className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-4"
-              >
-                {activeSlide.title}
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                className="text-sm sm:text-base text-stone-300 font-normal leading-relaxed mb-8 max-w-xl"
-              >
-                {activeSlide.subtitle}
-              </motion.p>
-
-              {/* Call to Actions with Tap Feedback */}
-              <div className="flex flex-wrap items-center gap-3.5 sm:gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.02, x: 2 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => handleSlideAction(activeSlide.category)}
-                  className="inline-flex items-center gap-2 bg-[#f36805] hover:bg-[#db5c00] text-white font-semibold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-orange-600/30 transition-colors cursor-pointer btn-press"
-                >
-                  <span>{activeSlide.primaryCta || 'Shop new in'}</span>
-                  <ArrowRight className="w-4 h-4 text-xs" />
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => {
-                    const el = document.getElementById('departments-section') || document.getElementById('catalog-section');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="inline-flex items-center gap-2 bg-stone-800/70 hover:bg-stone-800 text-white font-medium text-sm px-5 py-3.5 rounded-xl border border-stone-600/50 backdrop-blur-sm transition-colors cursor-pointer btn-press"
-                >
-                  <LayoutGrid className="w-4 h-4 text-stone-400" />
-                  <span>View collections</span>
-                </motion.button>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+            </AnimatePresence>
+          </div>
 
           {/* Carousel Navigation Controls */}
           <motion.button
@@ -208,37 +210,39 @@ export const Hero: React.FC<HeroProps> = ({
             whileTap={{ scale: 0.9 }}
             onClick={() => paginate(-1)}
             aria-label="Previous slide"
-            className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition-colors z-20 cursor-pointer"
+            className="absolute left-3 sm:left-6 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md transition-all z-20 cursor-pointer shadow-lg"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => paginate(1)}
             aria-label="Next slide"
-            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition-colors z-20 cursor-pointer"
+            className="absolute right-3 sm:right-6 md:right-8 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-md transition-all z-20 cursor-pointer shadow-lg"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </motion.button>
 
           {/* Carousel Pagination & Indicator with Smooth Active Width */}
-          <div className="absolute bottom-6 left-6 sm:left-14 right-6 sm:right-14 flex items-center justify-between text-xs text-stone-400 z-20">
-            <div className="flex items-center gap-2">
-              {effectiveSlides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => jumpToSlide(idx)}
-                  aria-label={`Go to slide ${idx + 1}`}
-                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    idx === currentSlide ? 'w-7 bg-[#f36805] shadow-sm' : 'w-2.5 bg-stone-500/70 hover:bg-stone-400'
-                  }`}
-                />
-              ))}
+          <div className="absolute bottom-6 left-0 right-0 z-20 pointer-events-none">
+            <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 lg:px-20 flex items-center justify-between text-xs text-stone-400 pointer-events-auto">
+              <div className="flex items-center gap-2">
+                {effectiveSlides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => jumpToSlide(idx)}
+                    aria-label={`Go to slide ${idx + 1}`}
+                    className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                      idx === currentSlide ? 'w-8 bg-[#f36805] shadow-sm' : 'w-2.5 bg-white/40 hover:bg-white/70'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="font-mono text-white/90 font-bold tracking-wider bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md">
+                0{currentSlide + 1} / 0{totalSlides}
+              </span>
             </div>
-            <span className="font-mono text-stone-300 font-semibold tracking-wider">
-              0{currentSlide + 1} / 0{totalSlides}
-            </span>
           </div>
         </div>
       </section>

@@ -176,12 +176,12 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
               /* iOS Safari Installation Guide */
               <div className="space-y-4 pt-1">
                 <div className="flex items-center gap-3 pb-3 border-b border-stone-100 dark:border-stone-800">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shrink-0">
-                    <Smartphone className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-2xl bg-stone-950 p-1 flex items-center justify-center shadow-md shrink-0 border border-white/10">
+                    <BrandLogo size="sm" variant="icon-only" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-stone-900 dark:text-white">
-                      {language === 'bn' ? 'iPhone / iPad-এ ইনস্টল করুন' : 'Install on iPhone / iPad'}
+                      {language === 'bn' ? 'iPhone / iPad-এ Easy Mart ইনস্টল' : 'Install Easy Mart on iPhone / iPad'}
                     </h3>
                     <p className="text-[11px] text-stone-500 dark:text-stone-400">
                       {language === 'bn' ? 'মাত্র ২টি সহজ ধাপে হোম স্ক্রিনে যোগ করুন:' : 'Add to home screen in 2 simple steps:'}
@@ -240,12 +240,12 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
               /* Android Chrome Manual Guide */
               <div className="space-y-4 pt-1">
                 <div className="flex items-center gap-3 pb-3 border-b border-stone-100 dark:border-stone-800">
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shrink-0">
-                    <Smartphone className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-2xl bg-stone-950 p-1 flex items-center justify-center shadow-md shrink-0 border border-white/10">
+                    <BrandLogo size="sm" variant="icon-only" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-stone-900 dark:text-white">
-                      {language === 'bn' ? 'Android Chrome-এ ইনস্টল করুন' : 'Install on Android Chrome'}
+                      {language === 'bn' ? 'Android Chrome-এ Easy Mart ইনস্টল' : 'Install Easy Mart on Android Chrome'}
                     </h3>
                     <p className="text-[11px] text-stone-500 dark:text-stone-400">
                       {language === 'bn' ? 'ক্রোম ব্রাউজার মেনু থেকে ইনস্টল করার নিয়ম:' : 'How to install via Chrome menu:'}
@@ -275,7 +275,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                     </div>
                     <div>
                       <p className="font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
-                        <span>"Install app" অথবা "Add to Home screen" চাপুন</span>
+                        <span>'Install App' বা 'Add to Home screen' চাপুন</span>
                         <Download className="w-3.5 h-3.5 text-emerald-500 inline" />
                       </p>
                       <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
@@ -304,10 +304,12 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
               /* Default Main Install Offer Popup */
               <>
                 {/* Header with App Logo & Verified Badge */}
-                <div className="flex items-center gap-3.5 pr-6">
+                <div className="flex items-center gap-4 pr-6">
                   <div className="relative shrink-0">
-                    <BrandLogo size="lg" variant="icon-only" />
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-xs">
+                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-stone-950 p-1.5 shadow-lg shadow-orange-500/20 border border-white/10 flex items-center justify-center">
+                      <BrandLogo size="lg" variant="icon-only" />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center border-2 border-white dark:border-stone-900 shadow-xs" title="Official Verified App">
                       <ShieldCheck className="w-3 h-3" />
                     </div>
                   </div>
@@ -326,6 +328,11 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({
                     </div>
                     <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                       {language === 'bn' ? 'সবকিছু, এক ঠিকানায়।' : 'Everything in one place.'}
+                    </p>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold mt-1 flex items-center gap-1">
+                      <span>★ 4.9 Rating</span>
+                      <span>·</span>
+                      <span>10K+ Happy Shoppers</span>
                     </p>
                   </div>
                 </div>
