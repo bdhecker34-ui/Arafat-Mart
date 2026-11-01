@@ -49,7 +49,11 @@ export function subscribeStoreContent(
       if (onError) {
         onError(error);
       } else {
-        handleFirestoreError(error, OperationType.GET, path);
+        try {
+          handleFirestoreError(error, OperationType.GET, path);
+        } catch {
+          // Gracefully suppress uncaught throw to prevent crashing the UI
+        }
       }
     }
   );
@@ -241,7 +245,9 @@ export function subscribeOrders(
       if (onError) {
         onError(error);
       } else {
-        handleFirestoreError(error, OperationType.GET, path);
+        try {
+          handleFirestoreError(error, OperationType.GET, path);
+        } catch {}
       }
     }
   );
@@ -363,8 +369,13 @@ export function subscribeCustomerWishes(
     },
     (error) => {
       console.warn('Customer wishes subscription note:', error);
-      if (onError) onError(error);
-      else handleFirestoreError(error, OperationType.GET, path);
+      if (onError) {
+        onError(error);
+      } else {
+        try {
+          handleFirestoreError(error, OperationType.GET, path);
+        } catch {}
+      }
     }
   );
 }

@@ -435,11 +435,16 @@ export default function App() {
   // Load & Live-Subscribe Content from Firestore & Backend on Mount
   useEffect(() => {
     // 1. Subscribe to Firestore real-time updates for live store content
-    const unsubscribe = subscribeStoreContent((remote) => {
-      if (remote && remote.products && remote.products.length > 0) {
-        setStoreContent(remote);
+    const unsubscribe = subscribeStoreContent(
+      (remote) => {
+        if (remote && remote.products && remote.products.length > 0) {
+          setStoreContent(remote);
+        }
+      },
+      (err) => {
+        console.warn('Store content subscription notice:', err);
       }
-    });
+    );
 
     // 2. Initial fallback fetch from API
     adminApi.fetchContent().then((remote) => {
